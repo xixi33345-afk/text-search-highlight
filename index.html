@@ -1881,6 +1881,7 @@ function titleOf(r, ri) {
 /* ================= 渲染单个文件的记录 ================= */
 function render() {
   const main = $('#main'), toc = $('#tocList');
+  const expandFullText = cf && itemKind(cf) === 'text';
   main.innerHTML = ''; toc.innerHTML = '';
   valueEls = []; marks = []; cur = -1;
 
@@ -1928,7 +1929,7 @@ function render() {
       eb.title = '就地修改这段文本（Ctrl+Enter 保存）';
       bar.appendChild(eb);
       let fb = null;
-      if (txt.length > 220 || (txt.match(/\n/g) || []).length > 5) {
+      if (!expandFullText && (txt.length > 220 || (txt.match(/\n/g) || []).length > 5)) {
         v.classList.add('fold');
         fb = document.createElement('button');
         fb.className = 'mini'; fb.textContent = '展开全文';
