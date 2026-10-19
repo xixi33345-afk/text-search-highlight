@@ -52,6 +52,8 @@ button:hover{background:var(--surface3);border-color:var(--faint);color:var(--fg
 button:active{transform:translateY(.5px)}
 button.primary{background:var(--acc);border-color:var(--acc);color:var(--accfg);font-weight:600;box-shadow:var(--sh1)}
 button.primary:hover{background:var(--accstrong);border-color:var(--accstrong);color:var(--accfg)}
+button.homeback{background:var(--acc);border-color:var(--acc);color:var(--accfg);font-weight:700;box-shadow:var(--sh1)}
+button.homeback:hover{background:var(--accstrong);border-color:var(--accstrong);color:var(--accfg)}
 button.ghost{background:transparent;border-color:transparent;color:var(--mut)}
 button.ghost:hover{background:var(--surface3);color:var(--fg)}
 button.danger{color:var(--dg);border-color:transparent;background:transparent}
@@ -495,7 +497,7 @@ body:not(.v-conv) .conv-only{display:none!important}
     <button id="tocBtn" class="iconbtn ghost rec-only" title="显示 / 隐藏左侧目录 (Ctrl+B)" aria-label="切换目录">☰</button>
     <span class="logo lib-only" aria-hidden="true">👁</span>
     <span class="ttl lib-only">保卫双眼</span>
-    <button id="back" class="rec-only" title="返回首页 (Alt+←)">← 首页</button>
+    <button id="back" class="rec-only homeback" title="返回首页 (Alt+←)">← 返回首页</button>
   </div>
   <div class="crumb rec-only">
     <span class="arw">/</span>
@@ -705,7 +707,7 @@ body:not(.v-conv) .conv-only{display:none!important}
       <div class="cvactions">
         <button id="cvRun" title="生成或更新结果">⇄ 生成结果</button>
         <button id="cvReset" title="放弃当前编辑并重新生成">重新生成（放弃编辑）</button>
-        <button id="cvBack" title="返回首页">← 返回首页</button>
+        <button id="cvBack" class="homeback" title="返回首页">← 返回首页</button>
         <button id="cvCopy" class="primary" title="复制全部结果">📋 复制</button>
       </div>
     </div>
