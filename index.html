@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>文本搜索高亮 · 表格库</title>
+<title>保卫双眼</title>
 <style>
 :root{
   color-scheme:light;
@@ -37,7 +37,7 @@ body{font:14px/1.6 var(--font);color:var(--fg);background:var(--bg);display:flex
   overflow:hidden;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 ::selection{background:var(--accsoft);color:var(--fg)}
 :focus-visible{outline:none;box-shadow:var(--ring)}
-h1,h2,h3{margin:0;font-weight:650;letter-spacing:-.01em}
+h1,h2,h3{margin:0;font-weight:650;letter-spacing:0}
 /* 滚动条 */
 *::-webkit-scrollbar{width:11px;height:11px}
 *::-webkit-scrollbar-track{background:transparent}
@@ -87,7 +87,7 @@ label.ck:has(input:checked){background:var(--accsoft);color:var(--acc);font-weig
 .brand{display:flex;align-items:center;gap:8px;min-width:0;flex:0 0 auto}
 .logo{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,var(--acc),#7c3aed);
   color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;flex:0 0 auto}
-.brand .ttl{font-weight:650;letter-spacing:-.01em;white-space:nowrap}
+.brand .ttl{font-weight:650;letter-spacing:0;white-space:nowrap}
 .crumb{display:flex;align-items:center;gap:7px;min-width:0;flex:0 1 auto}
 .crumb .arw{color:var(--faint);flex:0 0 auto}
 .crumb .fname{font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:26vw}
@@ -128,64 +128,76 @@ body.v-rec .lib-only{display:none!important}
   .crumb .fname{max-width:34vw}.counter{min-width:60px;font-size:12px}}
 /*CSS-C*/
 
-/* 文件库 */
+/* 首页 */
 #libView{flex:1 1 auto;overflow:auto;padding:22px 24px 60px}
 #libView.hide,#recView.hide{display:none}
 .libinner{max-width:1180px;margin:0 auto}
 .libhd{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:4px}
-.libhd h2{font-size:20px}
+.libhd h2{font-size:22px}
 .libsub{color:var(--mut);font-size:13px;margin-bottom:18px}
 #libMsg{min-height:18px;font-size:12.5px;display:flex;align-items:center;gap:5px}
 
-.quickpaste{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 12px;align-items:start;
-  padding:14px 16px;margin-bottom:16px;background:var(--surface);border:1px solid var(--bd);border-radius:var(--rm)}
-.quickpaste-main{min-width:0}
-.quickpaste-head{display:flex;align-items:baseline;gap:9px;margin-bottom:7px}
-.quickpaste-head b{font-size:14px;font-weight:650}
-.quickpaste-head span{font-size:12px;color:var(--mut)}
-#quickPasteText{display:block;width:100%;height:112px;min-height:80px;max-height:280px;resize:vertical;
-  font:13.5px/1.7 var(--font);letter-spacing:0;white-space:pre-wrap}
-.quickpaste-actions{display:flex;flex-direction:column;gap:7px;min-width:126px;padding-top:29px}
-.quickpaste-actions button{justify-content:center}
-.quickpaste-foot{display:flex;align-items:center;gap:8px;margin-top:6px;color:var(--mut);font-size:11.5px}
-.quickpaste-foot .grow{min-width:0}
-#quickPasteCount{font-variant-numeric:tabular-nums;white-space:nowrap}
-@media (max-width:700px){
-  .quickpaste{grid-template-columns:1fr}
-  .quickpaste-actions{padding-top:0;display:grid;grid-template-columns:auto auto 1fr;min-width:0}
-}
+.tool-grid{width:100%;max-width:930px;margin:0 auto 28px;display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.tool-tile{aspect-ratio:1;min-width:0;padding:15px;background:var(--surface);border:1px solid var(--bd);
+  border-radius:8px;box-shadow:var(--sh1);display:flex;flex-direction:column;gap:10px;overflow:hidden}
+.tool-tile:focus-within{border-color:var(--accbd);box-shadow:var(--ring)}
+.tool-head{display:flex;align-items:center;gap:9px;min-width:0}
+.tool-icon{width:34px;height:34px;flex:0 0 auto;border-radius:8px;background:var(--accsoft);color:var(--acc);
+  display:flex;align-items:center;justify-content:center;font-weight:750;font-size:15px}
+.tool-heading{min-width:0;display:flex;flex-direction:column;line-height:1.35}
+.tool-heading b{font-size:14.5px;font-weight:700}
+.tool-heading span{font-size:11.5px;color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tool-body{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:8px}
+.tool-body textarea{display:block;width:100%;flex:1 1 auto;min-height:0;resize:none;
+  font:13px/1.65 var(--font);letter-spacing:0;white-space:pre-wrap}
+.tool-actions{display:flex;align-items:center;gap:6px;min-width:0}
+.tool-actions .primary{margin-left:auto}
+.tool-count{font-size:11.5px;color:var(--mut);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tool-link{font-size:11.5px;padding:5px 7px}
 
-.drop{border:1.5px dashed var(--bd2);border-radius:var(--rl);background:var(--surface);padding:24px 18px;
-  text-align:center;color:var(--mut);margin-bottom:20px;transition:.15s;cursor:pointer}
+.drop{flex:1 1 auto;min-height:0;border:1.5px dashed var(--bd2);border-radius:8px;background:var(--surface2);
+  padding:13px;text-align:center;color:var(--mut);transition:.15s;cursor:pointer;display:flex;
+  flex-direction:column;align-items:center;justify-content:center}
 .drop:hover{border-color:var(--acc);background:var(--accsoft)}
 .drop.over{border-color:var(--acc);background:var(--accsoft);color:var(--acc);border-style:solid}
-.drop .dic{font-size:26px;opacity:.8;margin-bottom:6px;transition:transform .15s}
+.drop .dic{font-size:24px;opacity:.8;margin-bottom:5px;transition:transform .15s}
 .drop:hover .dic{transform:translateY(-2px)}
-.drop .big{font-size:14.5px;color:var(--fg);margin-bottom:3px;font-weight:600}
-.drop .sm{font-size:12.5px;line-height:1.7}
+.drop .big{font-size:13.5px;color:var(--fg);margin-bottom:3px;font-weight:650}
+.drop .sm{font-size:11.5px;line-height:1.55}
 
-.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(272px,1fr));gap:14px}
-.card{background:var(--surface);border:1px solid var(--bd);border-radius:var(--rm);padding:15px 16px 13px;
-  cursor:pointer;position:relative;transition:transform .14s,box-shadow .14s,border-color .14s;
-  box-shadow:var(--sh1);overflow:hidden}
-.card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--acc);
-  opacity:0;transition:opacity .14s}
-.card:hover{border-color:var(--accbd);box-shadow:var(--sh2);transform:translateY(-2px)}
-.card:hover::before{opacity:1}
-.card .chd{display:flex;align-items:center;gap:9px;margin-bottom:9px}
-.card .ic{width:32px;height:32px;border-radius:8px;background:var(--accsoft);color:var(--acc);
-  display:flex;align-items:center;justify-content:center;font-size:16px;flex:0 0 auto}
-.card .nm{font-weight:650;word-break:break-all;line-height:1.4;font-size:14.5px;min-width:0}
-.card .mt{color:var(--mut);font-size:12px;display:flex;flex-wrap:wrap;gap:4px 7px;align-items:center}
-.card .mt .dot{color:var(--bd2)}
-.card .mt .ed{color:var(--ok);font-weight:600}
-.cardacts{position:absolute;top:10px;right:10px;display:flex;gap:5px;opacity:0;transition:opacity .13s}
-.card:hover .cardacts,.card:focus-within .cardacts{opacity:1}
-.cardacts button{padding:3px 8px;font-size:12px;background:var(--surface)}
-.card .dl{color:var(--acc);border-color:var(--accbd)}
-.card .dl:hover{background:var(--accsoft);border-color:var(--acc);color:var(--acc)}
-.card .tidy{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 35%,var(--bd))}
-.card .tidy:hover{background:var(--oksoft);border-color:var(--ok)}
+.history{margin-top:4px}
+.history-title{display:flex;align-items:baseline;gap:9px;margin-bottom:10px}
+.history-title h3{font-size:16px}
+.history-title span{font-size:12px;color:var(--mut)}
+.history-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.history-column{min-width:0;border-top:3px solid var(--bd2);padding-top:10px}
+.history-column[data-kind=text]{border-top-color:var(--acc)}
+.history-column[data-kind=table]{border-top-color:var(--ok)}
+.history-column[data-kind=json]{border-top-color:var(--json-key)}
+.history-head{display:flex;align-items:center;gap:7px;margin-bottom:8px}
+.history-head b{font-size:13.5px}
+.history-head .tag{margin-left:auto}
+.history-list{display:flex;flex-direction:column;gap:7px}
+.history-empty{color:var(--faint);font-size:12.5px;padding:16px 4px;border-top:1px solid var(--bd)}
+.history-item{background:var(--surface);border:1px solid var(--bd);border-radius:8px;padding:10px 9px 10px 11px;
+  cursor:pointer;display:flex;align-items:center;gap:8px;min-width:0;transition:border-color .13s,box-shadow .13s}
+.history-item:hover{border-color:var(--accbd);box-shadow:var(--sh1)}
+.history-item.justnew{border-color:var(--acc);box-shadow:0 0 0 3px var(--accsoft)}
+.history-info{min-width:0;flex:1}
+.history-name{font-size:13px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.history-meta{font-size:11.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.history-actions{display:flex;gap:3px;flex:0 0 auto}
+.history-actions button{width:28px;height:28px;padding:0;justify-content:center;background:transparent;border-color:transparent}
+.history-actions .tidy{color:var(--ok)}
+.history-actions .dl{color:var(--acc)}
+.history-actions .del{color:var(--dg)}
+.history-actions button:hover{background:var(--surface3);border-color:var(--bd)}
+@media (max-width:920px){.history-grid{grid-template-columns:1fr}}
+@media (max-width:800px){
+  .tool-grid{max-width:none;grid-template-columns:repeat(3,260px);overflow-x:auto;padding-bottom:8px;scroll-snap-type:x proximity}
+  .tool-tile{scroll-snap-align:start}
+}
 
 /* 下载格式菜单 */
 .menuwrap{position:relative;flex:0 0 auto}
@@ -201,8 +213,6 @@ body.v-rec .lib-only{display:none!important}
 .menu .mi span{font-size:11.5px;color:var(--mut);line-height:1.5}
 .menu .mhr{height:1px;background:var(--bd);margin:4px 2px}
 .menu .mtip{padding:3px 10px 5px;font-size:11.5px;color:var(--faint);line-height:1.6}
-.card.justnew{border-color:var(--acc);box-shadow:0 0 0 3px var(--accsoft),var(--sh2)}
-.card.justnew::before{opacity:1}
 /* 记录视图 */
 #recView{flex:1 1 auto;display:flex;min-height:0}
 #toc{flex:0 0 266px;overflow:auto;border-right:1px solid var(--bd);background:var(--surface);
@@ -311,7 +321,7 @@ mark.cur{background:var(--cur);color:var(--curfg);box-shadow:0 0 0 3px color-mix
 .modal h3{font-size:16.5px;display:flex;align-items:center;gap:8px}
 .modal .sub{color:var(--mut);font-size:12.5px;margin-top:5px;line-height:1.7}
 .modal .mbd{padding:14px 22px;overflow:auto;flex:1 1 auto}
-.mlbl{font-size:12px;color:var(--faint);font-weight:600;letter-spacing:.03em;margin-bottom:7px}
+.mlbl{font-size:12px;color:var(--faint);font-weight:600;letter-spacing:0;margin-bottom:7px}
 .idlist{display:flex;flex-direction:column;gap:6px}
 .idopt{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--bd);border-radius:var(--rm);
   padding:10px 12px;cursor:pointer;transition:border-color .12s,background .12s}
@@ -398,7 +408,7 @@ body:not(.v-conv) .conv-only{display:none!important}
 .json-syntax mark.jp-hit.cur{background:var(--cur);color:var(--curfg);
   box-shadow:0 0 0 3px color-mix(in srgb,var(--cur) 28%,transparent);font-weight:600}
 .cvhighlight mark.jp-hit,.cvhighlight mark.jp-hit.cur{padding:0;border-radius:0;box-shadow:none;font-weight:400}
-.cvlabel{font-size:12px;color:var(--faint);font-weight:600;letter-spacing:.03em;margin-bottom:7px}
+.cvlabel{font-size:12px;color:var(--faint);font-weight:600;letter-spacing:0;margin-bottom:7px}
 .fmtpick{display:flex;flex-direction:column;gap:7px}
 .fmtopt{display:flex;gap:9px;align-items:flex-start;border:1px solid var(--bd);border-radius:var(--rm);
   padding:9px 11px;cursor:pointer;transition:border-color .12s,background .12s}
@@ -483,9 +493,9 @@ body:not(.v-conv) .conv-only{display:none!important}
 <div class="topbar">
   <div class="brand">
     <button id="tocBtn" class="iconbtn ghost rec-only" title="显示 / 隐藏左侧目录 (Ctrl+B)" aria-label="切换目录">☰</button>
-    <span class="logo lib-only" aria-hidden="true">🔍</span>
-    <span class="ttl lib-only">文本搜索高亮</span>
-    <button id="back" class="rec-only" title="返回文件库 (Alt+←)">← 文件库</button>
+    <span class="logo lib-only" aria-hidden="true">👁</span>
+    <span class="ttl lib-only">保卫双眼</span>
+    <button id="back" class="rec-only" title="返回首页 (Alt+←)">← 首页</button>
   </div>
   <div class="crumb rec-only">
     <span class="arw">/</span>
@@ -524,47 +534,92 @@ body:not(.v-conv) .conv-only{display:none!important}
   <button id="impBtn" class="primary notconv">＋ 导入表格</button>
 </div>
 
-<!-- 文件库 -->
+<!-- 首页 -->
 <div id="libView">
   <div class="libinner">
     <div class="libhd">
-      <h2>表格库</h2>
-      <span class="tag" id="libCount">0 个文件</span>
+      <h2>保卫双眼</h2>
+      <span class="tag" id="libCount">0 条记录</span>
     </div>
-    <div class="libsub">每个文件是一个文件夹，点进去看里面的每条记录。数据保存在本机浏览器，刷新不丢。</div>
+    <div class="libsub">粘贴文本、导入表格或美化 JSON。全部数据只保存在当前电脑的浏览器里。</div>
     <div id="libMsg"></div>
-    <section class="quickpaste" aria-labelledby="quickPasteTitle">
-      <div class="quickpaste-main">
-        <div class="quickpaste-head">
-          <b id="quickPasteTitle">快速粘贴搜索</b>
-          <span>粘贴后直接打开</span>
+    <div class="tool-grid">
+      <section class="tool-tile" aria-labelledby="quickPasteTitle">
+        <div class="tool-head">
+          <span class="tool-icon" aria-hidden="true">T</span>
+          <span class="tool-heading">
+            <b id="quickPasteTitle">文本粘贴</b>
+            <span>粘贴后直接搜索高亮</span>
+          </span>
         </div>
-        <textarea id="quickPasteText" spellcheck="false" placeholder="在这里粘贴任意文本…" aria-label="要搜索的文本"></textarea>
-        <div class="quickpaste-foot">
-          <span id="quickPasteCount">0 字符</span>
-          <span class="grow"></span>
-          <span>Ctrl+Enter 打开</span>
+        <div class="tool-body">
+          <textarea id="quickPasteText" spellcheck="false" placeholder="在这里粘贴任意文本…" aria-label="要搜索的文本"></textarea>
+          <div class="tool-actions">
+            <span id="quickPasteCount" class="tool-count">0 字符</span>
+            <button id="quickPasteClipboard" class="iconbtn" title="读取剪贴板内容" aria-label="读取剪贴板">📋</button>
+            <button id="quickPasteClear" class="iconbtn" title="清空文本" aria-label="清空文本" disabled>✕</button>
+            <button id="quickPasteOpen" class="primary" disabled>打开</button>
+          </div>
         </div>
+      </section>
+
+      <section class="tool-tile" aria-labelledby="tableImportTitle">
+        <div class="tool-head">
+          <span class="tool-icon" aria-hidden="true">▦</span>
+          <span class="tool-heading">
+            <b id="tableImportTitle">表格导入</b>
+            <span>查看、搜索并编辑记录</span>
+          </span>
+        </div>
+        <div class="tool-body">
+          <div class="drop" id="drop" role="button" tabindex="0">
+            <div class="dic" aria-hidden="true">📥</div>
+            <div class="big">拖入或点击选择表格</div>
+            <div class="sm">Excel · CSV · TXT / TSV<br>自动识别表头与编码</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="tool-tile" aria-labelledby="quickJsonTitle">
+        <div class="tool-head">
+          <span class="tool-icon" aria-hidden="true">{ }</span>
+          <span class="tool-heading">
+            <b id="quickJsonTitle">JSON 美化</b>
+            <span>整理缩进并保留语法颜色</span>
+          </span>
+        </div>
+        <div class="tool-body">
+          <textarea id="quickJsonText" spellcheck="false" placeholder='粘贴 JSON，例如：{"字段":"内容"}' aria-label="要美化的 JSON"></textarea>
+          <div class="tool-actions">
+            <span id="quickJsonCount" class="tool-count">0 字符</span>
+            <button id="quickJsonClear" class="iconbtn" title="清空 JSON" aria-label="清空 JSON" disabled>✕</button>
+            <button id="convBtn" class="tool-link ghost" title="打开空白 JSON 工作台">工作台</button>
+            <button id="quickJsonOpen" class="primary" disabled>美化</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section class="history" aria-labelledby="historyTitle">
+      <div class="history-title">
+        <h3 id="historyTitle">历史记录</h3>
+        <span>按功能分类，最近使用的排在前面</span>
       </div>
-      <div class="quickpaste-actions">
-        <button id="quickPasteClipboard" title="读取剪贴板内容">📋 粘贴</button>
-        <button id="quickPasteClear" class="iconbtn" title="清空文本" aria-label="清空文本" disabled>✕</button>
-        <button id="quickPasteOpen" class="primary" disabled>打开并搜索</button>
+      <div class="history-grid">
+        <section class="history-column" data-kind="text" aria-labelledby="textHistoryTitle">
+          <div class="history-head"><b id="textHistoryTitle">文本粘贴</b><span class="tag" id="textHistoryCount">0</span></div>
+          <div class="history-list" id="textHistory"></div>
+        </section>
+        <section class="history-column" data-kind="table" aria-labelledby="tableHistoryTitle">
+          <div class="history-head"><b id="tableHistoryTitle">表格导入</b><span class="tag" id="tableHistoryCount">0</span></div>
+          <div class="history-list" id="tableHistory"></div>
+        </section>
+        <section class="history-column" data-kind="json" aria-labelledby="jsonHistoryTitle">
+          <div class="history-head"><b id="jsonHistoryTitle">JSON 美化</b><span class="tag" id="jsonHistoryCount">0</span></div>
+          <div class="history-list" id="jsonHistory"></div>
+        </section>
       </div>
     </section>
-    <div class="drop" id="drop">
-      <div class="dic" aria-hidden="true">📥</div>
-      <div class="big">把 Excel / CSV / JSON 拖到这里，或点击选择文件</div>
-      <div class="sm">支持 .xlsx · .xlsm · .csv · .txt / .tsv（Tab 分隔）· .json · 自动识别表头与编码</div>
-    </div>
-    <div class="convbar">
-      <div class="cvinfo">
-        <b>整理 JSON，或把表格里的 JSON 拆出来？</b>
-        <span>上传 JSON / Excel / CSV，或直接使用库内表格 → 整理 → 编辑 → 下载 JSON / TXT / Markdown</span>
-      </div>
-      <button id="convBtn" class="primary">⇄ 新建转换任务</button>
-    </div>
-    <div class="cards" id="cards"></div>
     <div class="help">
       <span><span class="kbd">Ctrl</span>+<span class="kbd">F</span> 搜索</span>
       <span><span class="kbd">Enter</span> 下一个</span>
@@ -650,7 +705,7 @@ body:not(.v-conv) .conv-only{display:none!important}
       <div class="cvactions">
         <button id="cvRun" title="生成或更新结果">⇄ 生成结果</button>
         <button id="cvReset" title="放弃当前编辑并重新生成">重新生成（放弃编辑）</button>
-        <button id="cvBack" title="返回表格库">← 返回表格库</button>
+        <button id="cvBack" title="返回首页">← 返回首页</button>
         <button id="cvCopy" class="primary" title="复制全部结果">📋 复制</button>
       </div>
     </div>
@@ -712,11 +767,11 @@ body:not(.v-conv) .conv-only{display:none!important}
       </div>
 
       <div class="hsec">
-        <h4><span class="hn">3</span>浏览：每个文件是一个文件夹</h4>
+        <h4><span class="hn">3</span>浏览：首页历史记录</h4>
         <ul>
-          <li>首页是<b>表格库</b>，一张卡片就是一个文件，显示条数、列数、用的哪个编号列、改过多少处。</li>
-          <li><b>点卡片进去</b>看这个文件里的每条记录；左上角<b>「← 文件库」</b>返回。</li>
-          <li>在表格库页面，搜索框变成<b>按文件名过滤</b>。卡片右上角可以删除文件（会二次确认）。</li>
+          <li>首页下方按<b>文本粘贴、表格导入、JSON 美化</b>分别显示历史记录。</li>
+          <li><b>点历史记录</b>可以重新打开；左上角<b>「← 首页」</b>返回。</li>
+          <li>在首页，顶部搜索框会<b>按历史标题过滤</b>。每条记录右侧可以删除（会二次确认）。</li>
         </ul>
       </div>
       <div class="hsec">
@@ -755,7 +810,7 @@ body:not(.v-conv) .conv-only{display:none!important}
         <h4><span class="hn">7</span>下载 / 格式转换</h4>
         <ul>
           <li>在文件里点顶部<b>「⬇ 下载」</b>，菜单里有 <b>5 种格式</b>可选；按 <span class="kbd">Ctrl</span>+<span class="kbd">S</span> 直接导出 Excel。</li>
-          <li>在表格库页面，鼠标移到卡片上点<b>「⬇ 下载」</b>直接导出该文件的 Excel。</li>
+          <li>在表格历史记录右侧点<b>「↓」</b>，可以直接导出该文件的 Excel。</li>
           <li>不管选哪种格式，都<b>保持原表的行列顺序和表头</b>，你改过的地方已经写进去了。</li>
         </ul>
         <div class="ktab" style="margin:8px 0 2px">
@@ -771,9 +826,9 @@ body:not(.v-conv) .conv-only{display:none!important}
       <div class="hsec">
         <h4><span class="hn">8</span>转换任务：JSON / 表格 → JSON / TXT / Markdown</h4>
         <ul>
-          <li>表格库页面点<b>「⇄ 新建转换任务」</b>进入，可上传 JSON、Excel、CSV，或直接粘贴 JSON。</li>
+          <li>首页 JSON 美化方块里直接粘贴并美化；点<b>「工作台」</b>也可以进入完整转换界面。</li>
           <li>表格模式会扫描所有单元格，只整理可解析的 JSON；输出保留<b>原行号、识别编号、原列名、JSON 路径和值</b>。</li>
-          <li>表格库卡片上的<b>「⇄ 整理 JSON」</b>用于批量转换；打开文件后点顶部<b>「{} 美化 JSON」</b>，会在当前页面右侧直接显示结果。</li>
+          <li>表格历史右侧的<b>「{}」</b>用于批量转换；打开文件后点顶部<b>「{} 美化 JSON」</b>，会在当前页面右侧直接显示结果。</li>
           <li>记录中的 JSON 字段会出现<b>「{} 美化 JSON」</b>按钮，可在右栏切换查看不同字段；点击左侧其他记录时，右栏也会同步。</li>
           <li><b>选目标格式</b>：JSON 美化、纯文本、Markdown 表格、Markdown 列表。直接载入 JSON 时默认只美化排版，使用 4 个空格缩进，不改字段和值。</li>
           <li><b>就地编辑</b>：右侧就是普通编辑框，可以随意改。改过之后状态会变成<b>「已编辑（未下载）」</b>提醒你。</li>
@@ -798,7 +853,7 @@ body:not(.v-conv) .conv-only{display:none!important}
           <span class="kc"><span class="kbd">Ctrl</span>+<span class="kbd">Enter</span></span><span>保存正在编辑的文本 / 工作台里重新生成</span>
           <span class="kc"><span class="kbd">Ctrl</span>+<span class="kbd">S</span></span><span>下载 Excel / 工作台里下载结果</span>
           <span class="kc"><span class="kbd">Ctrl</span>+<span class="kbd">B</span></span><span>收起 / 展开左侧目录</span>
-          <span class="kc"><span class="kbd">Alt</span>+<span class="kbd">←</span></span><span>返回文件库</span>
+          <span class="kc"><span class="kbd">Alt</span>+<span class="kbd">←</span></span><span>返回首页</span>
           <span class="kc"><span class="kbd">F1</span> / <span class="kbd">?</span></span><span>打开这份操作说明</span>
         </div>
       </div>
@@ -1273,6 +1328,7 @@ async function commitImport() {
   const idCol = sel ? +sel.value : -1;
   const f = {
     id: 'f' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+    kind: 'table',
     name: pending.name,
     headers: pending.headers,
     rows: pending.body.map(r => {
@@ -1295,7 +1351,7 @@ async function commitImport() {
   else await refreshLib();
   if (ok) {
     tell('已导入「' + f.name + '」' + f.rows.length + ' 条记录');
-    const card = $$('#cards .card').find(c => c.dataset.id === f.id);
+    const card = $$('.history-item').find(c => c.dataset.id === f.id);
     if (card) {                              // 新导入的卡片高亮一下，指明落在哪
       card.classList.add('justnew');
       card.scrollIntoView({ block: 'nearest' });
@@ -1354,6 +1410,33 @@ async function nextInQueue() {
 
 /* ================= 文件库视图 ================= */
 let lib = [];
+function itemKind(item) {
+  if (item && /^(text|table|json)$/.test(item.kind || '')) return item.kind;
+  if (item && /^快速粘贴\s*·/.test(item.name || '')) return 'text';
+  if (item && typeof item.raw === 'string' && !Array.isArray(item.rows)) return 'json';
+  return 'table';
+}
+
+function titleFromContent(text, fallback) {
+  const clean = String(text || '').replace(/^\s+/, '').replace(/\s+/g, ' ').trim();
+  if (!clean) return fallback;
+  return clean.slice(0, 24) + (clean.length > 24 ? '…' : '');
+}
+
+function itemTitle(item) {
+  const name = String((item && item.name) || '未命名');
+  return itemKind(item) === 'text' ? name.replace(/^快速粘贴\s*·\s*/, '') : name;
+}
+
+function historyTime(value) {
+  if (!value) return '';
+  try {
+    return new Date(value).toLocaleString('zh-CN', {
+      month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false
+    });
+  } catch (e) { return ''; }
+}
+
 function libMsg(s, bad) {
   const el = $('#libMsg');
   if (!el) return;
@@ -1383,7 +1466,8 @@ async function openQuickPaste() {
     .trim().replace(/\s+/g, ' ');
   const f = {
     id: 'f' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
-    name: '快速粘贴 · ' + (firstLine.length > 28 ? firstLine.slice(0, 28) + '…' : firstLine),
+    kind: 'text',
+    name: titleFromContent(firstLine, '未命名文本'),
     headers: ['文本'],
     rows: [[text]],
     idCol: -1,
@@ -1423,60 +1507,144 @@ async function readQuickPasteClipboard() {
   }
 }
 
+function syncQuickJson() {
+  const ta = $('#quickJsonText');
+  if (!ta) return;
+  const hasText = ta.value.trim().length > 0;
+  $('#quickJsonCount').textContent = ta.value.length + ' 字符';
+  $('#quickJsonClear').disabled = !ta.value.length;
+  $('#quickJsonOpen').disabled = !hasText;
+}
+
+function selectJsonFormat() {
+  const radio = $('#cvFmt input[value="json"]');
+  if (radio) radio.checked = true;
+  $$('#cvFmt .fmtopt').forEach(x => x.classList.toggle('sel', !!x.querySelector('input').checked));
+}
+
+function openJsonHistory(item) {
+  if (!item || typeof item.raw !== 'string') {
+    libMsg('这条 JSON 历史记录已损坏', true);
+    return;
+  }
+  selectJsonFormat();
+  showConv();
+  cvLoadRaw(item.raw, itemTitle(item));
+}
+
+async function beautifyQuickJson() {
+  const ta = $('#quickJsonText');
+  const raw = ta.value.trim();
+  if (!raw) { libMsg('请先粘贴 JSON', true); ta.focus(); return; }
+  let result;
+  try { result = prettyJsonText(raw, 4); }
+  catch (e) {
+    libMsg('JSON 格式有误：' + ((e && e.message) || e), true);
+    ta.focus();
+    return;
+  }
+  const item = {
+    id: 'j' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+    kind: 'json',
+    name: titleFromContent(raw, '未命名 JSON'),
+    raw: raw,
+    result: result,
+    added: Date.now()
+  };
+  busy('正在保存 JSON…');
+  const ok = await dbPut(item);
+  busy('');
+  if (!ok) { libMsg('JSON 保存失败，浏览器存储可能已满', true); return; }
+  ta.value = '';
+  syncQuickJson();
+  await refreshLib();
+  openJsonHistory(item);
+}
+
+function renderHistoryItem(item, kind) {
+  const el = document.createElement('article');
+  el.className = 'history-item';
+  el.dataset.id = item.id;
+  el.dataset.search = itemTitle(item).toLowerCase();
+  el.tabIndex = 0;
+
+  const info = document.createElement('div');
+  info.className = 'history-info';
+  const name = document.createElement('div');
+  name.className = 'history-name';
+  name.textContent = itemTitle(item);
+  name.title = itemTitle(item);
+  const meta = document.createElement('div');
+  meta.className = 'history-meta';
+  const when = historyTime(item.added);
+  if (kind === 'text') {
+    const text = item.rows && item.rows[0] ? String(item.rows[0][0] || '') : '';
+    meta.textContent = text.length + ' 字符' + (when ? ' · ' + when : '');
+  } else if (kind === 'json') {
+    meta.textContent = String(item.raw || '').length + ' 字符' + (when ? ' · ' + when : '');
+  } else {
+    const changed = Object.keys(item.edited || {}).length;
+    meta.textContent = (item.rows || []).length + ' 条 · ' + (item.headers || []).length + ' 列'
+      + (changed ? ' · 已改 ' + changed + ' 处' : '') + (when ? ' · ' + when : '');
+  }
+  info.append(name, meta);
+
+  const actions = document.createElement('div');
+  actions.className = 'history-actions';
+  if (kind === 'table') {
+    const tidy = document.createElement('button');
+    tidy.className = 'tidy'; tidy.textContent = '{}';
+    tidy.title = '整理这个表格中的 JSON'; tidy.setAttribute('aria-label', tidy.title);
+    tidy.onclick = e => { e.stopPropagation(); cvLoadLibraryFile(item); };
+    const download = document.createElement('button');
+    download.className = 'dl'; download.textContent = '↓';
+    download.title = '下载这个表格'; download.setAttribute('aria-label', download.title);
+    download.onclick = e => { e.stopPropagation(); exportFile(item, 'xlsx'); };
+    actions.append(tidy, download);
+  }
+  const del = document.createElement('button');
+  del.className = 'del'; del.textContent = '×';
+  del.title = '删除这条历史记录'; del.setAttribute('aria-label', del.title);
+  del.onclick = async e => {
+    e.stopPropagation();
+    if (!confirm('删除「' + itemTitle(item) + '」？此操作无法恢复。')) return;
+    await dbDel(item.id);
+    await refreshLib();
+    libMsg('已删除「' + itemTitle(item) + '」');
+  };
+  actions.appendChild(del);
+
+  const open = () => kind === 'json' ? openJsonHistory(item) : openFile(item.id);
+  el.onclick = e => { if (!e.target.closest('button')) open(); };
+  el.onkeydown = e => {
+    if ((e.key === 'Enter' || e.key === ' ') && !e.target.closest('button')) {
+      e.preventDefault(); open();
+    }
+  };
+  el.append(info, actions);
+  return el;
+}
+
 async function refreshLib() {
   lib = await dbAll();
   lib.sort((a, b) => (b.added || 0) - (a.added || 0));
-  const box = $('#cards');
-  box.innerHTML = '';
-  $('#libCount').textContent = lib.length + ' 个文件';
-  if (!lib.length) {
-    box.innerHTML = '<div class="empty"><div class="eic">📂</div>'
-      + '<div class="eti">还没有表格</div>'
-      + '<div>把 Excel 或 CSV 拖到上面的虚线框里，或点它选择文件</div></div>';
-    return;
-  }
-  lib.forEach(f => {
-    const nEdit = Object.keys(f.edited || {}).length;
-    const c = document.createElement('div');
-    c.className = 'card';
-    c.dataset.id = f.id;
-    c.tabIndex = 0;
-    c.innerHTML = '<div class="chd"><div class="ic" aria-hidden="true">📁</div><div class="nm"></div></div>'
-      + '<div class="mt"></div><div class="cardacts">'
-      + '<button class="tidy" title="整理这个表格中的 JSON 单元格">⇄ 整理 JSON</button>'
-      + '<button class="dl" title="下载这个文件（含修改）">⬇ 下载</button>'
-      + '<button class="del danger" title="删除这个文件">删除</button></div>';
-    c.querySelector('.nm').textContent = f.name;
-    const mt = c.querySelector('.mt');
-    const bits = [
-      f.rows.length + ' 条',
-      f.headers.length + ' 列',
-      f.idCol >= 0 ? '编号：' + f.headers[f.idCol] : '顺序编号'
-    ];
-    bits.forEach((b, i) => {
-      if (i) { const d = document.createElement('span'); d.className = 'dot'; d.textContent = '·'; mt.appendChild(d); }
-      const s = document.createElement('span'); s.textContent = b; mt.appendChild(s);
-    });
-    if (nEdit) {
-      const d = document.createElement('span'); d.className = 'dot'; d.textContent = '·'; mt.appendChild(d);
-      const s = document.createElement('span'); s.className = 'ed'; s.textContent = '已改 ' + nEdit + ' 处';
-      mt.appendChild(s);
+  const groups = { text: [], table: [], json: [] };
+  lib.forEach(item => groups[itemKind(item)].push(item));
+  $('#libCount').textContent = lib.length + ' 条记录';
+  const labels = { text: '文本', table: '表格', json: 'JSON' };
+  Object.keys(groups).forEach(kind => {
+    const box = $('#' + kind + 'History');
+    const items = groups[kind];
+    box.replaceChildren();
+    $('#' + kind + 'HistoryCount').textContent = String(items.length);
+    if (!items.length) {
+      const empty = document.createElement('div');
+      empty.className = 'history-empty';
+      empty.textContent = '还没有' + labels[kind] + '记录';
+      box.appendChild(empty);
+      return;
     }
-    // 点卡片上的按钮不应该同时打开文件
-    c.onclick = e => { if (!e.target.closest('.cardacts')) openFile(f.id); };
-    c.onkeydown = e => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openFile(f.id); }
-    };
-    c.querySelector('.dl').onclick = e => { e.stopPropagation(); exportFile(f, 'xlsx'); };
-    c.querySelector('.tidy').onclick = e => { e.stopPropagation(); cvLoadLibraryFile(f); };
-    c.querySelector('.del').onclick = async e => {
-      e.stopPropagation();
-      if (!confirm('删除「' + f.name + '」？里面的修改也会一起删掉，无法恢复。')) return;
-      await dbDel(f.id);
-      await refreshLib();
-      libMsg('已删除「' + f.name + '」');
-    };
-    box.appendChild(c);
+    items.forEach(item => box.appendChild(renderHistoryItem(item, kind)));
   });
 }
 
@@ -1518,7 +1686,7 @@ function setRecordJsonPanel(open) {
     $('#q').placeholder = '输入后点击放大镜搜索 JSON…';
     if (!wasOpen) clearRecordSearchDisplay();
   } else {
-    $('#q').placeholder = cf ? '在这个文件里搜索…' : '按文件名过滤…';
+    $('#q').placeholder = cf ? '在这个文件里搜索…' : '按历史标题过滤…';
     jpHits = []; jpHitIdx = -1;
     markRecordJsonField(-1, -1);
   }
@@ -1658,7 +1826,7 @@ function showLib() {
   $('#recView').classList.add('hide');
   $('#convView').classList.add('hide');
   $('#q').value = ''; $('#cnt').textContent = '0 / 0';
-  $('#q').placeholder = '按文件名过滤…';
+  $('#q').placeholder = '按历史标题过滤…';
   $('#q').classList.remove('bad');
   syncQueryUI();
   location.hash = '';
@@ -1667,7 +1835,10 @@ function showLib() {
 
 function openFile(id) {
   const f = lib.find(x => x.id === id);
-  if (!f) { libMsg('文件不存在', true); return; }
+  if (!f || itemKind(f) === 'json' || !Array.isArray(f.headers) || !Array.isArray(f.rows)) {
+    libMsg('记录不存在或已经损坏', true);
+    return;
+  }
   cf = f;
   headers = f.headers.slice();
   rows = f.rows.map(r => r.slice());
@@ -2717,7 +2888,7 @@ function cvLoadLibraryFile(file) {
   };
   showConv();
   $('#cvName').textContent = convTask.name;
-  $('#cvSrcInfo').textContent = '表格库文件 · ' + file.rows.length + ' 行 · ' + file.headers.length + ' 列 · 扫描 JSON 单元格';
+  $('#cvSrcInfo').textContent = '历史表格 · ' + file.rows.length + ' 行 · ' + file.headers.length + ' 列 · 扫描 JSON 单元格';
   const peek = $('#cvSrcPeek');
   peek.style.display = '';
   peek.textContent = '表头：' + file.headers.join(' | ');
@@ -2905,17 +3076,17 @@ function doSearch(keepIndex) {
   } else updateCounter();
 }
 
-/* 文件库视图下，搜索框当文件名过滤用 */
+/* 首页视图下，搜索框按历史标题过滤。 */
 function filterLib() {
   const q = $('#q').value.trim().toLowerCase();
   let n = 0;
-  $$('#cards .card').forEach((c, i) => {
-    const nm = (lib[i] ? lib[i].name : '').toLowerCase();
-    const hit = !q || nm.indexOf(q) > -1;
-    c.style.display = hit ? '' : 'none';
+  const items = $$('.history-item');
+  items.forEach(item => {
+    const hit = !q || (item.dataset.search || '').indexOf(q) > -1;
+    item.style.display = hit ? '' : 'none';
     if (hit) n++;
   });
-  $('#cnt').textContent = q ? (n + ' / ' + lib.length) : '0 / 0';
+  $('#cnt').textContent = q ? (n + ' / ' + items.length) : '0 / 0';
 }
 
 /* 右侧 JSON 栏使用顶部搜索框；所有命中保留语法颜色，当前命中自动滚到可见位置。 */
@@ -3293,11 +3464,30 @@ $('#quickPasteClear').onclick = () => {
 $('#quickPasteOpen').onclick = openQuickPaste;
 syncQuickPaste();
 
+/* 首页 JSON 美化：保存一条历史记录，再进入现有工作台显示结果。 */
+$('#quickJsonText').addEventListener('input', syncQuickJson);
+$('#quickJsonText').addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    e.preventDefault();
+    beautifyQuickJson();
+  }
+});
+$('#quickJsonClear').onclick = () => {
+  $('#quickJsonText').value = '';
+  syncQuickJson();
+  $('#quickJsonText').focus();
+};
+$('#quickJsonOpen').onclick = beautifyQuickJson;
+syncQuickJson();
+
 /* 导入：按钮 / 拖拽区 / 整个页面都能进 */
 let cvPicking = false;                 // true 表示这次选文件是给转换工作台用的
 function pickFiles() { cvPicking = false; $('#file').click(); }
 $('#impBtn').onclick = pickFiles;
 $('#drop').onclick = pickFiles;
+$('#drop').addEventListener('keydown', e => {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pickFiles(); }
+});
 $('#file').addEventListener('change', e => {
   // FileList 是活引用：必须先复制成数组，再清空 value，否则拿到的是空列表
   const fs = Array.from(e.target.files || []);
@@ -3461,7 +3651,7 @@ document.addEventListener('keydown', e => {
     const hs = PRESET_DATA.headers.slice();
     const idc = hs.findIndex(h => /sample_index/i.test(h));
     await dbPut({
-      id: 'f_preset', name: '门诊3.0输入数据_随机抽取30条（示例）',
+      id: 'f_preset', kind: 'table', name: '门诊3.0输入数据_随机抽取30条（示例）',
       headers: hs, rows: PRESET_DATA.rows.map(r => r.slice()),
       idCol: idc, edited: {}, added: Date.now()
     });
@@ -3469,8 +3659,8 @@ document.addEventListener('keydown', e => {
   await refreshLib();
   const m = /f=([^&]+)/.exec(location.hash || '');
   if (/convert/.test(location.hash || '')) showConv();
-  else if (m && lib.some(f => f.id === m[1])) openFile(m[1]);
-  else { $('#q').placeholder = '按文件名过滤…'; $('#q').focus(); }
+  else if (m && lib.some(f => f.id === m[1] && itemKind(f) !== 'json')) openFile(m[1]);
+  else { $('#q').placeholder = '按历史标题过滤…'; $('#q').focus(); }
   syncQueryUI();
   if (useLS) libMsg('提示：当前用 localStorage 保存（容量较小），数据仍然刷新不丢');
 })();
