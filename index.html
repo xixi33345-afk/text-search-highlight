@@ -222,9 +222,10 @@ body.v-rec .lib-only{display:none!important}
 .menu .mtip{padding:3px 10px 5px;font-size:11.5px;color:var(--faint);line-height:1.6}
 /* 记录视图 */
 #recView{flex:1 1 auto;display:flex;min-height:0}
-#toc{flex:0 0 266px;overflow:auto;border-right:1px solid var(--bd);background:var(--surface);
+#navPane{flex:0 0 auto;display:flex;min-width:0;background:var(--surface)}
+#navPane.hide{display:none}
+#toc{flex:0 0 246px;overflow:auto;border-right:1px solid var(--bd);background:var(--surface);
   padding:10px 8px 24px;display:flex;flex-direction:column;gap:2px}
-#toc.hide{display:none}
 #stat{padding:2px 8px 9px;color:var(--mut);font-size:12px;border-bottom:1px solid var(--bd);
   margin-bottom:6px;flex:0 0 auto;line-height:1.6}
 .scopenote{color:var(--acc);font-size:12px;font-weight:600;margin-top:3px;display:flex;align-items:center;gap:4px}
@@ -238,6 +239,22 @@ body.v-rec .lib-only{display:none!important}
 .toc-item .n{color:var(--curink);font-size:11.5px;white-space:nowrap;font-weight:650;
   background:color-mix(in srgb,var(--cur) 13%,transparent);padding:1px 6px;border-radius:var(--rf)}
 .toc-item.dim{opacity:.38}
+
+#fieldNav{flex:0 0 200px;min-width:0;border-right:1px solid var(--bd);background:var(--surface2);
+  display:flex;flex-direction:column}
+#fieldNav[hidden]{display:none}
+.fieldnav-head{flex:0 0 auto;padding:11px 10px 9px;border-bottom:1px solid var(--bd);
+  display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.fieldnav-head b{font-size:13px;color:var(--fg)}
+#fieldNavRow{font-size:11.5px;color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#fieldNavList{min-height:0;overflow:auto;padding:7px 6px 20px;display:flex;flex-direction:column;gap:2px}
+.fieldnav-item{width:100%;min-width:0;border:0;background:transparent;padding:7px 8px;
+  display:flex;align-items:center;gap:7px;text-align:left;border-radius:var(--rs);color:var(--fg2)}
+.fieldnav-item:hover{background:var(--surface);color:var(--acc)}
+.fieldnav-item.on{background:var(--accsoft);color:var(--acc);box-shadow:inset 2.5px 0 0 var(--acc)}
+.fieldnav-item:disabled{cursor:default;opacity:.45}
+.fieldnav-item .n{flex:0 0 auto;color:var(--faint);font-size:11px;font-variant-numeric:tabular-nums}
+.fieldnav-item .t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px}
 
 #main{flex:1 1 auto;overflow:auto;padding:18px 20px 60vh;scroll-padding-top:20px}
 #main>.rec,#main>.empty{max-width:1080px;margin-left:auto;margin-right:auto}
@@ -282,9 +299,10 @@ body.v-rec .lib-only{display:none!important}
 #jsonTidyBtn.act{background:var(--accsoft);border-color:var(--acc);color:var(--acc);font-weight:650}
 
 .field{display:grid;grid-template-columns:150px 1fr;gap:14px;padding:10px 14px;
-  border-top:1px solid color-mix(in srgb,var(--bd) 55%,transparent)}
+  border-top:1px solid color-mix(in srgb,var(--bd) 55%,transparent);transition:background .18s,box-shadow .18s}
 .field.first{border-top:0}
 .field:hover{background:var(--surface2)}
+.field.jump-current{background:var(--accsoft);box-shadow:inset 4px 0 0 var(--acc)}
 .lb{color:var(--mut);font-size:12.5px;word-break:break-word;line-height:1.6;padding-top:1px}
 .vwrap{min-width:0}
 .value{white-space:pre-wrap;word-break:break-word;border-radius:var(--rs);padding:3px 6px;margin:-3px -6px;
@@ -485,8 +503,11 @@ body:not(.v-conv) .conv-only{display:none!important}
 @media (max-width:600px){.ktab{grid-template-columns:1fr;gap:2px 0}.ktab .kc{text-align:left;margin-top:6px}}
 
 @media (max-width:900px){
-  /* 绝对定位后 flex-basis 失效，必须显式给宽度，否则会盖住正文 */
-  #toc{position:absolute;left:0;top:0;bottom:0;z-index:9;box-shadow:var(--sh3);width:250px;max-width:82vw}
+  #navPane{position:absolute;left:0;top:0;bottom:0;z-index:9;box-shadow:var(--sh3);
+    width:min(470px,92vw);max-width:92vw}
+  #navPane:not(.has-fields){width:250px;max-width:82vw}
+  #toc{position:static;flex:1 1 55%;width:auto;max-width:none;min-width:0;box-shadow:none}
+  #fieldNav{flex:1 1 45%;min-width:0}
   #recView{position:relative}
   .field{grid-template-columns:1fr;gap:3px}
   .lb{font-weight:600;color:var(--fg2)}
@@ -499,7 +520,7 @@ body:not(.v-conv) .conv-only{display:none!important}
 <body class="v-lib">
 <div class="topbar">
   <div class="brand">
-    <button id="tocBtn" class="iconbtn ghost rec-only" title="显示 / 隐藏左侧目录 (Ctrl+B)" aria-label="切换目录">☰</button>
+    <button id="tocBtn" class="iconbtn ghost rec-only" title="显示 / 隐藏记录与字段导航 (Ctrl+B)" aria-label="切换记录与字段导航">☰</button>
     <span class="logo lib-only" aria-hidden="true">👁</span>
     <span class="ttl lib-only">保卫双眼</span>
     <button id="back" class="rec-only homeback" title="返回首页 (Alt+←)">← 返回首页</button>
@@ -643,7 +664,13 @@ body:not(.v-conv) .conv-only{display:none!important}
 
 <!-- 单个文件的记录视图 -->
 <div id="recView" class="hide">
-  <div id="toc"><div id="stat"></div><div id="tocList"></div></div>
+  <div id="navPane">
+    <div id="toc"><div id="stat"></div><div id="tocList"></div></div>
+    <aside id="fieldNav" aria-label="字段导航" hidden>
+      <div class="fieldnav-head"><b>字段导航</b><span id="fieldNavRow"></span></div>
+      <div id="fieldNavList"></div>
+    </aside>
+  </div>
   <div id="main"></div>
   <aside id="jsonPanel" class="hide" aria-label="JSON 美化结果">
     <div class="jphd">
@@ -792,7 +819,8 @@ body:not(.v-conv) .conv-only{display:none!important}
           <li>在搜索框输入要找的字，<b>所有命中即时变黄底</b>，<b>当前一个是橙底</b>，并自动滚动到视图中部。</li>
           <li><span class="kbd">Enter</span> 跳下一个，<span class="kbd">Shift</span>+<span class="kbd">Enter</span> 上一个，也可以点顶部的 <b>↑ ↓</b>。右边的计数器显示"第几个 / 共几个"。</li>
           <li>折叠的长文本一旦命中会<b>自动展开</b>，不会出现"搜到了却看不见"。</li>
-          <li>左侧目录显示每条记录命中多少处，点一下直接跳过去。</li>
+          <li>左侧第一列选择记录；表格文件还会显示第二列<b>「字段导航」</b>，点表头就会展开并跳到当前记录的对应内容。</li>
+          <li>搜索命中时，记录和字段导航会一起选中正确位置。</li>
           <li><b>Aa</b> 区分大小写，<b>.*</b> 用正则（写错时输入框会变红），<b>仅命中</b>只显示有命中的记录。</li>
         </ul>
       </div>
@@ -864,7 +892,7 @@ body:not(.v-conv) .conv-only{display:none!important}
           <span class="kc"><span class="kbd">Esc</span></span><span>清空搜索 / 关闭弹窗 / 放弃编辑</span>
           <span class="kc"><span class="kbd">Ctrl</span>+<span class="kbd">Enter</span></span><span>保存正在编辑的文本 / 工作台里重新生成</span>
           <span class="kc"><span class="kbd">Ctrl</span>+<span class="kbd">S</span></span><span>下载 Excel / 工作台里下载结果</span>
-          <span class="kc"><span class="kbd">Ctrl</span>+<span class="kbd">B</span></span><span>收起 / 展开左侧目录</span>
+          <span class="kc"><span class="kbd">Ctrl</span>+<span class="kbd">B</span></span><span>收起 / 展开记录与字段导航</span>
           <span class="kc"><span class="kbd">Alt</span>+<span class="kbd">←</span></span><span>返回首页</span>
           <span class="kc"><span class="kbd">F1</span> / <span class="kbd">?</span></span><span>打开这份操作说明</span>
         </div>
@@ -1664,7 +1692,7 @@ async function refreshLib() {
 let cf = null;                  // 当前文件对象
 let headers = [], rows = [];
 let valueEls = [], marks = [], cur = -1, scopeRow = -1;
-let activeRow = 0, recordJsonSelection = null, recordJsonText = '';
+let activeRow = 0, activeCol = -1, recordJsonSelection = null, recordJsonText = '';
 let jpHits = [], jpHitIdx = -1;
 
 function prettyRecordJson(value) {
@@ -1712,6 +1740,8 @@ function closeRecordJsonPanel(restoreSearch) {
 
 function showRecordJsonEmpty(row, message) {
   activeRow = row >= 0 && row < rows.length ? row : activeRow;
+  activeCol = -1;
+  renderFieldNav(activeRow, activeCol);
   recordJsonSelection = null;
   recordJsonText = '';
   setRecordJsonPanel(true);
@@ -1733,6 +1763,8 @@ function showRecordJson(row, col) {
     return false;
   }
   activeRow = row;
+  activeCol = col;
+  renderFieldNav(row, col);
   recordJsonSelection = { row: row, col: col };
   recordJsonText = pretty;
   setRecordJsonPanel(true);
@@ -1831,7 +1863,7 @@ async function copyPlainText(text) {
 function showLib() {
   closeRecordJsonPanel(false);
   cf = null; headers = []; rows = []; valueEls = []; marks = []; cur = -1; scopeRow = -1;
-  activeRow = 0; recordJsonSelection = null; recordJsonText = '';
+  activeRow = 0; activeCol = -1; recordJsonSelection = null; recordJsonText = '';
   $('#dlMenu').classList.remove('open');
   document.body.className = 'v-lib';
   $('#libView').classList.remove('hide');
@@ -1855,7 +1887,7 @@ function openFile(id) {
   headers = f.headers.slice();
   rows = f.rows.map(r => r.slice());
   scopeRow = -1;
-  activeRow = 0; recordJsonSelection = null; recordJsonText = '';
+  activeRow = 0; activeCol = -1; recordJsonSelection = null; recordJsonText = '';
   closeRecordJsonPanel(false);
   document.body.className = 'v-rec';
   $('#libView').classList.add('hide');
@@ -1915,6 +1947,63 @@ function setAllFolded(folded) {
   if (changed) flash(folded ? '已折叠全部长内容' : '已展开全部长内容');
 }
 
+function renderFieldNav(row, selectedCol) {
+  const panel = $('#fieldNav'), list = $('#fieldNavList'), navPane = $('#navPane');
+  const isTable = !!cf && itemKind(cf) === 'table';
+  panel.hidden = !isTable;
+  navPane.classList.toggle('has-fields', isTable);
+  list.replaceChildren();
+  if (!isTable) return;
+
+  const validRow = row >= 0 && row < rows.length;
+  $('#fieldNavRow').textContent = validRow ? idOf(row) : '没有记录';
+  headers.forEach((header, col) => {
+    const btn = document.createElement('button');
+    btn.className = 'fieldnav-item' + (validRow && col === selectedCol ? ' on' : '');
+    btn.type = 'button';
+    btn.disabled = !validRow;
+    btn.title = validRow ? '跳到“' + header + '”字段' : '当前表格没有记录';
+    const n = document.createElement('span');
+    n.className = 'n';
+    n.textContent = String(col + 1).padStart(2, '0');
+    const t = document.createElement('span');
+    t.className = 't';
+    t.textContent = header || ('列 ' + (col + 1));
+    btn.append(n, t);
+    btn.onclick = () => jumpToField(row, col);
+    list.appendChild(btn);
+  });
+  const selected = list.querySelector('.fieldnav-item.on');
+  if (selected) requestAnimationFrame(() => selected.scrollIntoView({ block: 'nearest' }));
+}
+
+function expandFieldValue(ve) {
+  if (!ve || !ve.more || !ve.el.classList.contains('fold')) return;
+  ve.el.classList.remove('fold');
+  ve.more.textContent = '收起';
+  syncFoldControls();
+}
+
+function jumpToField(row, col) {
+  const ve = valueEls.find(v => v.row === row && v.col === col);
+  if (!ve) return;
+  activeRow = row;
+  activeCol = col;
+  expandFieldValue(ve);
+  renderFieldNav(row, col);
+
+  $$('.toc-item').forEach(ti => ti.classList.toggle('on', +ti.dataset.row === row));
+  const main = $('#main');
+  const fieldRect = ve.field.getBoundingClientRect();
+  const mainRect = main.getBoundingClientRect();
+  main.scrollTop += fieldRect.top - mainRect.top - 12;
+
+  $$('.field.jump-current').forEach(field => field.classList.remove('jump-current'));
+  ve.field.classList.add('jump-current');
+  clearTimeout(ve.field._jumpTimer);
+  ve.field._jumpTimer = setTimeout(() => ve.field.classList.remove('jump-current'), 1600);
+}
+
 /* ================= 渲染单个文件的记录 ================= */
 function render() {
   const main = $('#main'), toc = $('#tocList');
@@ -1926,6 +2015,7 @@ function render() {
     main.innerHTML = '<div class="empty"><div class="eic">📄</div>'
       + '<div class="eti">这个文件里没有记录</div><div>可能表头下面没有数据行</div></div>';
     $('#stat').textContent = '空文件';
+    renderFieldNav(-1, -1);
     fillWho(); updateScopeUI(); updateCounter(); syncFoldControls();
     return;
   }
@@ -2003,6 +2093,8 @@ function render() {
     ti.querySelector('.t').textContent = titleOf(r, ri);
     ti.onclick = () => {
       activeRow = ri;
+      activeCol = -1;
+      renderFieldNav(ri, -1);
       if (recordJsonPanelOpen()) showFirstJsonForRow(ri);
       if (scopeRow >= 0 && scopeRow !== ri) { setScope(ri); return; }
       const first = marks.find(m => m.row === ri);
@@ -2018,6 +2110,7 @@ function render() {
   main.appendChild(nh);
 
   if (scopeRow >= rows.length) scopeRow = -1;
+  renderFieldNav(activeRow, activeCol);
   fillWho(); updateScopeUI(); doSearch(); syncFoldControls();
 }
 /* ================= 修改并保存单元格 ================= */
@@ -3273,6 +3366,9 @@ function gotoMark(i) {
   const m = marks[cur];
   m.node.classList.add('cur');
   activeRow = m.row;
+  activeCol = m.col;
+  expandFieldValue(valueEls.find(v => v.row === m.row && v.col === m.col));
+  renderFieldNav(m.row, m.col);
   if (recordJsonPanelOpen() && prettyRecordJson(rows[m.row] && rows[m.row][m.col]) != null) {
     showRecordJson(m.row, m.col);
   }
@@ -3341,7 +3437,11 @@ function setScope(ri) {
   scopeRow = (ri >= 0 && ri < rows.length) ? ri : -1;
   if (scopeRow >= 0) {
     activeRow = scopeRow;
+    activeCol = -1;
+    renderFieldNav(activeRow, activeCol);
     if (recordJsonPanelOpen()) showFirstJsonForRow(scopeRow);
+  } else {
+    renderFieldNav(activeRow, activeCol);
   }
   updateScopeUI();
   doSearch();
@@ -3389,7 +3489,7 @@ $('#prev').onclick = () => inConv() ? cvGotoHit(cvHitIdx - 1)
 ['cs', 're', 'only'].forEach(id => $('#' + id).addEventListener('change', () => doSearch(true)));
 $('#who').addEventListener('change', e => setScope(e.target.value === '' ? -1 : +e.target.value));
 $('#clrWho').onclick = () => { setScope(-1); $('#q').focus(); };
-$('#tocBtn').onclick = () => $('#toc').classList.toggle('hide');
+$('#tocBtn').onclick = () => $('#navPane').classList.toggle('hide');
 $('#back').onclick = () => showLib();
 $('#expandAll').onclick = () => setAllFolded(false);
 $('#collapseAll').onclick = () => setAllFolded(true);
@@ -3679,7 +3779,7 @@ document.addEventListener('keydown', e => {
   }
   // Ctrl+B 收起 / 展开目录
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b' && cf && !editing) {
-    e.preventDefault(); $('#toc').classList.toggle('hide');
+    e.preventDefault(); $('#navPane').classList.toggle('hide');
   }
   // Alt+← 返回文件库
   if (e.altKey && e.key === 'ArrowLeft' && (cf || document.body.classList.contains('v-conv'))) {
