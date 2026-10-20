@@ -92,6 +92,9 @@ label.ck:has(input:checked){background:var(--accsoft);color:var(--acc);font-weig
 .logo{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,var(--acc),#7c3aed);
   color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;flex:0 0 auto}
 .brand .ttl{font-weight:650;letter-spacing:0;white-space:nowrap}
+.foldgrp{display:flex;align-items:center;gap:5px;flex:0 0 auto}
+.foldgrp[hidden]{display:none}
+.foldgrp button{padding:6px 9px;font-weight:650}
 .crumb{display:flex;align-items:center;gap:7px;min-width:0;flex:0 1 auto}
 .crumb .arw{color:var(--faint);flex:0 0 auto}
 .crumb .fname{font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:26vw}
@@ -500,6 +503,10 @@ body:not(.v-conv) .conv-only{display:none!important}
     <span class="logo lib-only" aria-hidden="true">👁</span>
     <span class="ttl lib-only">保卫双眼</span>
     <button id="back" class="rec-only homeback" title="返回首页 (Alt+←)">← 返回首页</button>
+    <div id="foldControls" class="foldgrp rec-only" hidden>
+      <button id="expandAll" title="一键展开表格中的所有长内容">↕ 展开</button>
+      <button id="collapseAll" title="一键折叠表格中的所有长内容">↥ 折叠</button>
+    </div>
   </div>
   <div class="crumb rec-only">
     <span class="arw">/</span>
@@ -775,6 +782,7 @@ body:not(.v-conv) .conv-only{display:none!important}
         <ul>
           <li>首页下方按<b>文本粘贴、表格导入、JSON 美化</b>分别显示历史记录。</li>
           <li><b>点历史记录</b>可以重新打开；左上角<b>「← 首页」</b>返回。</li>
+          <li>表格里的长内容默认折叠，可以用顶部的<b>「展开 / 折叠」</b>一次控制全部内容。</li>
           <li>在首页，顶部搜索框会<b>按历史标题过滤</b>。每条记录右侧可以删除（会二次确认）。</li>
         </ul>
       </div>
@@ -1857,6 +1865,7 @@ function openFile(id) {
   $('#q').value = '';
   $('#q').placeholder = '在这个文件里搜索…';
   $('#q').classList.remove('bad');
+  $('#foldControls').hidden = itemKind(f) !== 'table';
   syncQueryUI();
   location.hash = 'f=' + id;
   render();
@@ -1882,6 +1891,30 @@ function titleOf(r, ri) {
   }
   return parts.join(' · ') || '(空)';
 }
+
+function syncFoldControls() {
+  const group = $('#foldControls');
+  const isTable = !!cf && itemKind(cf) === 'table';
+  group.hidden = !isTable;
+  if (!isTable) return;
+  const foldable = valueEls.filter(v => v.more && !v.el.classList.contains('edit'));
+  $('#expandAll').disabled = !foldable.some(v => v.el.classList.contains('fold'));
+  $('#collapseAll').disabled = !foldable.some(v => !v.el.classList.contains('fold'));
+}
+
+function setAllFolded(folded) {
+  let changed = 0;
+  valueEls.forEach(v => {
+    if (!v.more || v.el.classList.contains('edit')) return;
+    const wasFolded = v.el.classList.contains('fold');
+    v.el.classList.toggle('fold', folded);
+    v.more.textContent = folded ? '展开全文' : '收起';
+    if (wasFolded !== folded) changed++;
+  });
+  syncFoldControls();
+  if (changed) flash(folded ? '已折叠全部长内容' : '已展开全部长内容');
+}
+
 /* ================= 渲染单个文件的记录 ================= */
 function render() {
   const main = $('#main'), toc = $('#tocList');
@@ -1893,7 +1926,7 @@ function render() {
     main.innerHTML = '<div class="empty"><div class="eic">📄</div>'
       + '<div class="eti">这个文件里没有记录</div><div>可能表头下面没有数据行</div></div>';
     $('#stat').textContent = '空文件';
-    fillWho(); updateScopeUI(); updateCounter();
+    fillWho(); updateScopeUI(); updateCounter(); syncFoldControls();
     return;
   }
 
@@ -1941,6 +1974,7 @@ function render() {
         fb.onclick = () => {
           const folded = v.classList.toggle('fold');
           fb.textContent = folded ? '展开全文' : '收起';
+          syncFoldControls();
         };
         bar.appendChild(fb);
       }
@@ -1984,7 +2018,7 @@ function render() {
   main.appendChild(nh);
 
   if (scopeRow >= rows.length) scopeRow = -1;
-  fillWho(); updateScopeUI(); doSearch();
+  fillWho(); updateScopeUI(); doSearch(); syncFoldControls();
 }
 /* ================= 修改并保存单元格 ================= */
 function startEdit(ve) {
@@ -1999,6 +2033,7 @@ function startEdit(ve) {
   ve.editBtn.textContent = '保存';
   ve.editBtn.classList.add('ok');
   if (ve.more) ve.more.style.display = 'none';
+  syncFoldControls();
   if (!ve.cancelBtn) {
     const cb = document.createElement('button');
     cb.className = 'mini'; cb.textContent = '取消';
@@ -2026,6 +2061,7 @@ function endEditUI(ve) {
     ve.el.classList.add('fold');
     ve.more.textContent = '展开全文';
   }
+  syncFoldControls();
 }
 
 function cancelEdit(ve) {
@@ -3077,8 +3113,12 @@ function doSearch(keepIndex) {
       const k = marks.findIndex(m => m.row >= prevRow);
       if (k > -1) idx = k;
     }
+    syncFoldControls();
     gotoMark(idx);
-  } else updateCounter();
+  } else {
+    syncFoldControls();
+    updateCounter();
+  }
 }
 
 /* 首页视图下，搜索框按历史标题过滤。 */
@@ -3351,6 +3391,8 @@ $('#who').addEventListener('change', e => setScope(e.target.value === '' ? -1 : 
 $('#clrWho').onclick = () => { setScope(-1); $('#q').focus(); };
 $('#tocBtn').onclick = () => $('#toc').classList.toggle('hide');
 $('#back').onclick = () => showLib();
+$('#expandAll').onclick = () => setAllFolded(false);
+$('#collapseAll').onclick = () => setAllFolded(true);
 $('#jsonTidyBtn').onclick = toggleRecordJsonPanel;
 $('#jpClose').onclick = () => closeRecordJsonPanel(true);
 $('#jpCopy').onclick = async () => {
