@@ -273,13 +273,21 @@ body.v-rec .lib-only{display:none!important}
 #fieldNav.collapsed .fieldnav-title,#fieldNav.collapsed .fieldnav-item .t{display:none}
 #fieldNav.collapsed .fieldnav-item{justify-content:center;padding-left:3px;padding-right:3px;gap:0}
 
-#main{flex:1 1 auto;overflow:auto;padding:18px 20px 60vh;scroll-padding-top:20px}
+#main{flex:1 1 auto;min-width:320px;overflow:auto;padding:18px 20px 60vh;scroll-padding-top:20px}
 #main>.rec,#main>.empty{max-width:1080px;margin-left:auto;margin-right:auto}
 #recView.json-open #main{padding-left:14px;padding-right:14px}
 #recView.json-open #main>.rec,#recView.json-open #main>.empty{max-width:none}
-#jsonPanel{flex:0 0 clamp(390px,36vw,620px);min-width:0;display:flex;flex-direction:column;
-  border-left:1px solid var(--bd);background:var(--surface);box-shadow:-5px 0 18px rgba(16,24,40,.06)}
+#jsonPanel{position:relative;flex:0 0 var(--json-panel-width,clamp(390px,36vw,620px));min-width:0;
+  display:flex;flex-direction:column;border-left:1px solid var(--bd);background:var(--surface);
+  box-shadow:-5px 0 18px rgba(16,24,40,.06)}
 #jsonPanel.hide{display:none}
+.json-resize-handle{position:absolute;z-index:12;left:-6px;top:0;bottom:0;width:12px;
+  cursor:col-resize;touch-action:none;outline:none}
+.json-resize-handle::after{content:'';position:absolute;left:5px;top:0;bottom:0;width:2px;
+  background:var(--bd2);transition:background .12s,width .12s,left .12s}
+.json-resize-handle:hover::after,.json-resize-handle:focus-visible::after,
+body.json-resizing .json-resize-handle::after{left:4px;width:3px;background:var(--acc)}
+body.json-resizing,body.json-resizing *{cursor:col-resize!important;user-select:none!important}
 .jphd{flex:0 0 auto;padding:10px 12px;border-bottom:1px solid var(--bd);background:var(--surface2);
   display:flex;align-items:center;gap:8px;min-height:52px}
 .jpmeta{min-width:0;flex:1;display:flex;flex-direction:column;gap:1px}
@@ -344,11 +352,14 @@ mark.cur{background:var(--cur);color:var(--curfg);box-shadow:0 0 0 3px color-mix
   scroll-margin:120px;font-weight:600}
 @media (max-width:1180px){
   #recView{position:relative}
-  #jsonPanel{position:absolute;z-index:8;right:0;top:0;bottom:0;width:min(570px,calc(100% - 48px));
+  #main{min-width:0}
+  #jsonPanel{position:absolute;z-index:8;right:0;top:0;bottom:0;
+    width:min(var(--json-panel-width,570px),calc(100% - 48px));
     box-shadow:-12px 0 32px rgba(16,24,40,.18)}
 }
 @media (max-width:720px){
   #jsonPanel{width:100%}
+  .json-resize-handle{display:none}
 }
 /* 弹窗 */
 @keyframes maskIn{from{opacity:0}to{opacity:1}}
@@ -697,6 +708,8 @@ body:not(.v-conv) .conv-only{display:none!important}
   </div>
   <div id="main"></div>
   <aside id="jsonPanel" class="hide" aria-label="JSON 美化结果">
+    <div id="jsonResizeHandle" class="json-resize-handle" role="separator" aria-orientation="vertical"
+      aria-label="调整原始内容和 JSON 美化区域的宽度" tabindex="0" title="左右拖动调整宽度，双击恢复默认"></div>
     <div class="jphd">
       <div class="jpmeta">
         <div class="jptitle" id="jpTitle">JSON 美化</div>
@@ -895,6 +908,7 @@ body:not(.v-conv) .conv-only{display:none!important}
           <li>表格模式会扫描所有单元格，只整理可解析的 JSON；输出保留<b>原行号、识别编号、原列名、JSON 路径和值</b>。</li>
           <li>表格历史右侧的<b>「{}」</b>用于批量转换；打开文件后点顶部<b>「{} 美化 JSON」</b>，会在当前页面右侧直接显示结果。</li>
           <li>记录中的 JSON 字段会出现<b>「{} 美化 JSON」</b>按钮，可在右栏切换查看不同字段；点击左侧其他记录时，右栏也会同步。</li>
+          <li>拖动原始内容与 JSON 美化之间的<b>竖向分隔线</b>可以调整两侧宽度；双击分隔线恢复默认，宽度会自动保留。</li>
           <li><b>选目标格式</b>：JSON 美化、纯文本、Markdown 表格、Markdown 列表。直接载入 JSON 时默认只美化排版，使用 4 个空格缩进，不改字段和值。</li>
           <li><b>就地编辑</b>：右侧就是普通编辑框，可以随意改。改过之后状态会变成<b>「已编辑（未下载）」</b>提醒你。</li>
           <li><b>下载</b>：点右上角<b>「⬇ 下载结果」</b>或按 <span class="kbd">Ctrl</span>+<span class="kbd">S</span>，下载的是<b>你编辑后的内容</b>，不是重新生成的。改过的文件名会带「_已编辑」。</li>
@@ -1721,6 +1735,12 @@ let activeRow = 0, activeCol = -1, recordJsonSelection = null, recordJsonText = 
 let jpHits = [], jpHitIdx = -1;
 const NAV_TOC_COLLAPSED_KEY = 'th_nav_toc_collapsed';
 const NAV_FIELD_COLLAPSED_KEY = 'th_nav_field_collapsed';
+const JSON_PANEL_WIDTH_KEY = 'th_json_panel_width';
+let recordJsonPanelWidth = null;
+try {
+  const savedJsonPanelWidth = Number(localStorage.getItem(JSON_PANEL_WIDTH_KEY));
+  if (Number.isFinite(savedJsonPanelWidth) && savedJsonPanelWidth > 0) recordJsonPanelWidth = savedJsonPanelWidth;
+} catch (e) {}
 
 function prettyRecordJson(value) {
   const raw = String(value == null ? '' : value).trim();
@@ -1734,6 +1754,47 @@ function prettyRecordJson(value) {
 
 function recordJsonPanelOpen() {
   return !$('#jsonPanel').classList.contains('hide');
+}
+
+function recordJsonPanelWidthBounds() {
+  const recView = $('#recView');
+  const panel = $('#jsonPanel');
+  const min = 320;
+  if (matchMedia('(max-width:1180px)').matches) {
+    return { min: Math.min(min, recView.clientWidth), max: Math.max(min, recView.clientWidth - 48) };
+  }
+  const available = $('#main').clientWidth + panel.getBoundingClientRect().width;
+  return { min: min, max: Math.max(min, available - 340) };
+}
+
+function syncRecordJsonResizeAria() {
+  const handle = $('#jsonResizeHandle');
+  const panel = $('#jsonPanel');
+  if (!recordJsonPanelOpen() || !panel.getBoundingClientRect().width) return;
+  const bounds = recordJsonPanelWidthBounds();
+  handle.setAttribute('aria-valuemin', String(Math.round(bounds.min)));
+  handle.setAttribute('aria-valuemax', String(Math.round(bounds.max)));
+  handle.setAttribute('aria-valuenow', String(Math.round(panel.getBoundingClientRect().width)));
+}
+
+function applyRecordJsonPanelWidth(width, persist) {
+  const bounds = recordJsonPanelWidthBounds();
+  const clamped = Math.round(Math.min(bounds.max, Math.max(bounds.min, width)));
+  $('#recView').style.setProperty('--json-panel-width', clamped + 'px');
+  if (persist) {
+    recordJsonPanelWidth = clamped;
+    try { localStorage.setItem(JSON_PANEL_WIDTH_KEY, String(clamped)); } catch (e) {}
+  }
+  syncRecordJsonResizeAria();
+  return clamped;
+}
+
+function resetRecordJsonPanelWidth(showMessage) {
+  recordJsonPanelWidth = null;
+  $('#recView').style.removeProperty('--json-panel-width');
+  try { localStorage.removeItem(JSON_PANEL_WIDTH_KEY); } catch (e) {}
+  requestAnimationFrame(syncRecordJsonResizeAria);
+  if (showMessage) flash('JSON 分隔线已恢复默认宽度');
 }
 
 function markRecordJsonField(row, col) {
@@ -1750,6 +1811,10 @@ function setRecordJsonPanel(open) {
   $('#jsonTidyBtn').textContent = open ? '收起 JSON' : '{} 美化 JSON';
   $('#jsonTidyBtn').title = open ? '收起右侧 JSON 美化结果' : '在右侧直接美化当前记录的 JSON';
   if (open) {
+    requestAnimationFrame(() => {
+      if (recordJsonPanelWidth == null) resetRecordJsonPanelWidth(false);
+      else applyRecordJsonPanelWidth(recordJsonPanelWidth, false);
+    });
     $('#q').placeholder = '输入后点击放大镜搜索 JSON…';
     if (!wasOpen) clearRecordSearchDisplay();
   } else {
@@ -3546,6 +3611,42 @@ $('#expandAll').onclick = () => setAllFolded(false);
 $('#collapseAll').onclick = () => setAllFolded(true);
 $('#jsonTidyBtn').onclick = toggleRecordJsonPanel;
 $('#jpClose').onclick = () => closeRecordJsonPanel(true);
+let jsonResizeState = null;
+$('#jsonResizeHandle').addEventListener('pointerdown', e => {
+  if (e.button !== 0 || matchMedia('(max-width:720px)').matches) return;
+  e.preventDefault();
+  const handle = e.currentTarget;
+  jsonResizeState = {
+    pointerId: e.pointerId,
+    startX: e.clientX,
+    startWidth: $('#jsonPanel').getBoundingClientRect().width,
+    currentWidth: $('#jsonPanel').getBoundingClientRect().width
+  };
+  handle.setPointerCapture(e.pointerId);
+  document.body.classList.add('json-resizing');
+});
+$('#jsonResizeHandle').addEventListener('pointermove', e => {
+  if (!jsonResizeState || e.pointerId !== jsonResizeState.pointerId) return;
+  jsonResizeState.currentWidth = applyRecordJsonPanelWidth(
+    jsonResizeState.startWidth + jsonResizeState.startX - e.clientX, false);
+});
+function finishRecordJsonResize(e) {
+  if (!jsonResizeState || e.pointerId !== jsonResizeState.pointerId) return;
+  const width = jsonResizeState.currentWidth;
+  jsonResizeState = null;
+  document.body.classList.remove('json-resizing');
+  applyRecordJsonPanelWidth(width, true);
+}
+$('#jsonResizeHandle').addEventListener('pointerup', finishRecordJsonResize);
+$('#jsonResizeHandle').addEventListener('pointercancel', finishRecordJsonResize);
+$('#jsonResizeHandle').ondblclick = () => resetRecordJsonPanelWidth(true);
+$('#jsonResizeHandle').addEventListener('keydown', e => {
+  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  e.preventDefault();
+  const step = e.shiftKey ? 80 : 24;
+  const current = $('#jsonPanel').getBoundingClientRect().width;
+  applyRecordJsonPanelWidth(current + (e.key === 'ArrowLeft' ? step : -step), true);
+});
 $('#jpCopy').onclick = async () => {
   if (!recordJsonText) { flash('当前没有可复制的 JSON', true); return; }
   const ok = await copyPlainText(recordJsonText);
@@ -3767,7 +3868,15 @@ $('#dlBtn').onclick = e => {
   const open = m.classList.toggle('open');
   if (open) placeDlMenu();                       // 内容先填好再量尺寸定位
 };
-addEventListener('resize', placeDlMenu);
+addEventListener('resize', () => {
+  placeDlMenu();
+  if (recordJsonPanelOpen()) {
+    requestAnimationFrame(() => {
+      if (recordJsonPanelWidth == null) syncRecordJsonResizeAria();
+      else applyRecordJsonPanelWidth(recordJsonPanelWidth, false);
+    });
+  }
+});
 addEventListener('scroll', closeDlMenu, true);
 [['dlXlsx', 'xlsx'], ['dlCsv', 'csv'], ['dlJson', 'json'], ['dlTxt', 'txt'], ['dlMd', 'md']]
   .forEach(([id, fmt]) => { $('#' + id).onclick = () => { closeDlMenu(); exportFile(cf, fmt); }; });
