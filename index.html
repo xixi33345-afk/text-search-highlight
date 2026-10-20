@@ -224,8 +224,15 @@ body.v-rec .lib-only{display:none!important}
 #recView{flex:1 1 auto;display:flex;min-height:0}
 #navPane{flex:0 0 auto;display:flex;min-width:0;background:var(--surface)}
 #navPane.hide{display:none}
-#toc{flex:0 0 246px;overflow:auto;border-right:1px solid var(--bd);background:var(--surface);
+#toc{flex:0 0 200px;width:200px;overflow:auto;overflow-x:hidden;border-right:1px solid var(--bd);background:var(--surface);
   padding:10px 8px 24px;display:flex;flex-direction:column;gap:2px}
+.navcol-head{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:6px;
+  min-height:30px;border-bottom:1px solid var(--bd)}
+.toc-head{padding:0 2px 7px;margin-bottom:4px}
+.navcol-head b{font-size:13px;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.navcol-toggle{width:28px;height:28px;padding:0;flex:0 0 28px;justify-content:center;
+  border-color:transparent;background:transparent;color:var(--mut);font-size:18px;line-height:1}
+.navcol-toggle:hover{color:var(--acc);border-color:var(--accbd);background:var(--accsoft)}
 #stat{padding:2px 8px 9px;color:var(--mut);font-size:12px;border-bottom:1px solid var(--bd);
   margin-bottom:6px;flex:0 0 auto;line-height:1.6}
 .scopenote{color:var(--acc);font-size:12px;font-weight:600;margin-top:3px;display:flex;align-items:center;gap:4px}
@@ -240,12 +247,12 @@ body.v-rec .lib-only{display:none!important}
   background:color-mix(in srgb,var(--cur) 13%,transparent);padding:1px 6px;border-radius:var(--rf)}
 .toc-item.dim{opacity:.38}
 
-#fieldNav{flex:0 0 200px;min-width:0;border-right:1px solid var(--bd);background:var(--surface2);
+#fieldNav{flex:0 0 160px;width:160px;min-width:0;border-right:1px solid var(--bd);background:var(--surface2);
   display:flex;flex-direction:column}
 #fieldNav[hidden]{display:none}
 .fieldnav-head{flex:0 0 auto;padding:11px 10px 9px;border-bottom:1px solid var(--bd);
-  display:flex;align-items:baseline;justify-content:space-between;gap:8px}
-.fieldnav-head b{font-size:13px;color:var(--fg)}
+  display:flex;align-items:center;justify-content:space-between;gap:6px}
+.fieldnav-title{min-width:0;display:flex;flex-direction:column;gap:1px}
 #fieldNavRow{font-size:11.5px;color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #fieldNavList{min-height:0;overflow:auto;padding:7px 6px 20px;display:flex;flex-direction:column;gap:2px}
 .fieldnav-item{width:100%;min-width:0;border:0;background:transparent;padding:7px 8px;
@@ -255,6 +262,16 @@ body.v-rec .lib-only{display:none!important}
 .fieldnav-item:disabled{cursor:default;opacity:.45}
 .fieldnav-item .n{flex:0 0 auto;color:var(--faint);font-size:11px;font-variant-numeric:tabular-nums}
 .fieldnav-item .t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px}
+
+#toc.collapsed{flex-basis:48px;width:48px;padding-left:5px;padding-right:5px}
+#toc.collapsed .toc-head{justify-content:center;padding-left:0;padding-right:0}
+#toc.collapsed .toc-head b,#toc.collapsed #stat,#toc.collapsed .toc-item .t,#toc.collapsed .toc-item .n{display:none}
+#toc.collapsed .toc-item{justify-content:center;padding-left:3px;padding-right:3px;gap:0}
+#toc.collapsed .toc-item .i{max-width:38px;overflow:hidden;text-overflow:ellipsis}
+#fieldNav.collapsed{flex-basis:48px;width:48px}
+#fieldNav.collapsed .fieldnav-head{justify-content:center;padding-left:5px;padding-right:5px}
+#fieldNav.collapsed .fieldnav-title,#fieldNav.collapsed .fieldnav-item .t{display:none}
+#fieldNav.collapsed .fieldnav-item{justify-content:center;padding-left:3px;padding-right:3px;gap:0}
 
 #main{flex:1 1 auto;overflow:auto;padding:18px 20px 60vh;scroll-padding-top:20px}
 #main>.rec,#main>.empty{max-width:1080px;margin-left:auto;margin-right:auto}
@@ -504,10 +521,11 @@ body:not(.v-conv) .conv-only{display:none!important}
 
 @media (max-width:900px){
   #navPane{position:absolute;left:0;top:0;bottom:0;z-index:9;box-shadow:var(--sh3);
-    width:min(470px,92vw);max-width:92vw}
-  #navPane:not(.has-fields){width:250px;max-width:82vw}
-  #toc{position:static;flex:1 1 55%;width:auto;max-width:none;min-width:0;box-shadow:none}
-  #fieldNav{flex:1 1 45%;min-width:0}
+    width:auto;max-width:92vw}
+  #navPane:not(.has-fields){width:auto;max-width:82vw}
+  #toc{position:static;flex:0 0 min(200px,51vw);width:min(200px,51vw);max-width:none;min-width:0;box-shadow:none}
+  #fieldNav{flex:0 0 min(160px,41vw);width:min(160px,41vw);min-width:0}
+  #toc.collapsed,#fieldNav.collapsed{flex-basis:48px;width:48px}
   #recView{position:relative}
   .field{grid-template-columns:1fr;gap:3px}
   .lb{font-weight:600;color:var(--fg2)}
@@ -665,9 +683,15 @@ body:not(.v-conv) .conv-only{display:none!important}
 <!-- 单个文件的记录视图 -->
 <div id="recView" class="hide">
   <div id="navPane">
-    <div id="toc"><div id="stat"></div><div id="tocList"></div></div>
+    <div id="toc">
+      <div class="navcol-head toc-head"><b>记录导航</b><button id="tocCollapse" class="navcol-toggle" type="button" title="收缩记录导航" aria-label="收缩记录导航" aria-expanded="true">‹</button></div>
+      <div id="stat"></div><div id="tocList"></div>
+    </div>
     <aside id="fieldNav" aria-label="字段导航" hidden>
-      <div class="fieldnav-head"><b>字段导航</b><span id="fieldNavRow"></span></div>
+      <div class="navcol-head fieldnav-head">
+        <div class="fieldnav-title"><b>字段导航</b><span id="fieldNavRow"></span></div>
+        <button id="fieldNavCollapse" class="navcol-toggle" type="button" title="收缩字段导航" aria-label="收缩字段导航" aria-expanded="true">‹</button>
+      </div>
       <div id="fieldNavList"></div>
     </aside>
   </div>
@@ -820,6 +844,7 @@ body:not(.v-conv) .conv-only{display:none!important}
           <li><span class="kbd">Enter</span> 跳下一个，<span class="kbd">Shift</span>+<span class="kbd">Enter</span> 上一个，也可以点顶部的 <b>↑ ↓</b>。右边的计数器显示"第几个 / 共几个"。</li>
           <li>折叠的长文本一旦命中会<b>自动展开</b>，不会出现"搜到了却看不见"。</li>
           <li>左侧第一列选择记录；表格文件还会显示第二列<b>「字段导航」</b>，点表头就会展开并跳到当前记录的对应内容。</li>
+          <li>两列导航顶部的 <b>‹</b> 可以各自收缩成编号窄栏，再点 <b>›</b> 展开；收缩状态会自动保留。</li>
           <li>搜索命中时，记录和字段导航会一起选中正确位置。</li>
           <li><b>Aa</b> 区分大小写，<b>.*</b> 用正则（写错时输入框会变红），<b>仅命中</b>只显示有命中的记录。</li>
         </ul>
@@ -1694,6 +1719,8 @@ let headers = [], rows = [];
 let valueEls = [], marks = [], cur = -1, scopeRow = -1;
 let activeRow = 0, activeCol = -1, recordJsonSelection = null, recordJsonText = '';
 let jpHits = [], jpHitIdx = -1;
+const NAV_TOC_COLLAPSED_KEY = 'th_nav_toc_collapsed';
+const NAV_FIELD_COLLAPSED_KEY = 'th_nav_field_collapsed';
 
 function prettyRecordJson(value) {
   const raw = String(value == null ? '' : value).trim();
@@ -1945,6 +1972,26 @@ function setAllFolded(folded) {
   });
   syncFoldControls();
   if (changed) flash(folded ? '已折叠全部长内容' : '已展开全部长内容');
+}
+
+function savedNavColumnCollapsed(key) {
+  try { return localStorage.getItem(key) === '1'; } catch (e) { return false; }
+}
+
+function setNavColumnCollapsed(kind, collapsed, persist) {
+  const isToc = kind === 'toc';
+  const panel = $(isToc ? '#toc' : '#fieldNav');
+  const btn = $(isToc ? '#tocCollapse' : '#fieldNavCollapse');
+  const label = isToc ? '记录导航' : '字段导航';
+  const key = isToc ? NAV_TOC_COLLAPSED_KEY : NAV_FIELD_COLLAPSED_KEY;
+  panel.classList.toggle('collapsed', collapsed);
+  btn.textContent = collapsed ? '›' : '‹';
+  btn.title = (collapsed ? '展开' : '收缩') + label;
+  btn.setAttribute('aria-label', btn.title);
+  btn.setAttribute('aria-expanded', String(!collapsed));
+  if (persist !== false) {
+    try { localStorage.setItem(key, collapsed ? '1' : '0'); } catch (e) {}
+  }
 }
 
 function renderFieldNav(row, selectedCol) {
@@ -3490,6 +3537,10 @@ $('#prev').onclick = () => inConv() ? cvGotoHit(cvHitIdx - 1)
 $('#who').addEventListener('change', e => setScope(e.target.value === '' ? -1 : +e.target.value));
 $('#clrWho').onclick = () => { setScope(-1); $('#q').focus(); };
 $('#tocBtn').onclick = () => $('#navPane').classList.toggle('hide');
+$('#tocCollapse').onclick = () => setNavColumnCollapsed('toc', !$('#toc').classList.contains('collapsed'));
+$('#fieldNavCollapse').onclick = () => setNavColumnCollapsed('field', !$('#fieldNav').classList.contains('collapsed'));
+setNavColumnCollapsed('toc', savedNavColumnCollapsed(NAV_TOC_COLLAPSED_KEY), false);
+setNavColumnCollapsed('field', savedNavColumnCollapsed(NAV_FIELD_COLLAPSED_KEY), false);
 $('#back').onclick = () => showLib();
 $('#expandAll').onclick = () => setAllFolded(false);
 $('#collapseAll').onclick = () => setAllFolded(true);
