@@ -225,40 +225,45 @@ body.v-rec .lib-only{display:none!important}
 .menu .mtip{padding:3px 10px 5px;font-size:11.5px;color:var(--faint);line-height:1.6}
 /* 记录视图 */
 #recView{flex:1 1 auto;display:flex;min-height:0}
-#navPane{flex:0 0 auto;display:flex;min-width:0;background:var(--surface)}
+#navPane{flex:0 0 auto;display:flex;min-width:0;min-height:0;background:var(--surface)}
 #navPane.hide{display:none}
-#toc{flex:0 0 200px;width:200px;overflow:auto;overflow-x:hidden;border-right:1px solid var(--bd);background:var(--surface);
-  padding:10px 8px 24px;display:flex;flex-direction:column;gap:2px}
+#toc{flex:0 0 200px;width:200px;min-height:0;overflow:hidden;border-right:1px solid var(--bd);background:var(--surface);
+  display:flex;flex-direction:column}
+#tocList{flex:1 1 0;min-height:0;overflow:auto;overflow-x:hidden;padding:5px 8px 24px;
+  display:flex;flex-direction:column;gap:2px}
 .navcol-head{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:6px;
   min-height:30px;border-bottom:1px solid var(--bd)}
-.toc-head{padding:0 2px 7px;margin-bottom:4px}
+.toc-head{padding:10px 10px 8px}
+.navcol-short{display:none}
 .navcol-head b{font-size:13px;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .navcol-toggle{width:28px;height:28px;padding:0;flex:0 0 28px;justify-content:center;
   border-color:transparent;background:transparent;color:var(--mut);font-size:18px;line-height:1}
 .navcol-toggle:hover{color:var(--acc);border-color:var(--accbd);background:var(--accsoft)}
-#stat{padding:2px 8px 9px;color:var(--mut);font-size:12px;border-bottom:1px solid var(--bd);
-  margin-bottom:6px;flex:0 0 auto;line-height:1.6}
+#stat{padding:6px 16px 9px;color:var(--mut);font-size:12px;border-bottom:1px solid var(--bd);
+  flex:0 0 auto;line-height:1.6;overflow-wrap:anywhere}
 .scopenote{color:var(--acc);font-size:12px;font-weight:600;margin-top:3px;display:flex;align-items:center;gap:4px}
 .toc-item{display:flex;gap:8px;align-items:baseline;padding:7px 9px;border-radius:var(--rs);cursor:pointer;
   font-size:13px;position:relative;transition:background .12s;flex:0 0 auto}
 .toc-item:hover{background:var(--surface3)}
 .toc-item.on{background:var(--accsoft)}
 .toc-item.scoped{background:var(--accsoft);box-shadow:inset 2.5px 0 0 var(--acc)}
-.toc-item .i{color:var(--acc);font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:600;font-size:12.5px}
-.toc-item .t{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fg2)}
+.toc-item .ord{display:none}
+.toc-item .i{flex:0 1 auto;max-width:80px;overflow:hidden;text-overflow:ellipsis;color:var(--acc);
+  font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:600;font-size:12.5px}
+.toc-item .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fg2)}
 .toc-item .n{color:var(--curink);font-size:11.5px;white-space:nowrap;font-weight:650;
   background:color-mix(in srgb,var(--cur) 13%,transparent);padding:1px 6px;border-radius:var(--rf)}
 .toc-item.dim{opacity:.38}
 
-#fieldNav{flex:0 0 160px;width:160px;min-width:0;border-right:1px solid var(--bd);background:var(--surface2);
+#fieldNav{flex:0 0 160px;width:160px;min-width:0;min-height:0;overflow:hidden;border-right:1px solid var(--bd);background:var(--surface2);
   display:flex;flex-direction:column}
 #fieldNav[hidden]{display:none}
 .fieldnav-head{flex:0 0 auto;padding:11px 10px 9px;border-bottom:1px solid var(--bd);
   display:flex;align-items:center;justify-content:space-between;gap:6px}
 .fieldnav-title{min-width:0;display:flex;flex-direction:column;gap:1px}
 #fieldNavRow{font-size:11.5px;color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#fieldNavList{min-height:0;overflow:auto;padding:7px 6px 20px;display:flex;flex-direction:column;gap:2px}
-.fieldnav-item{width:100%;min-width:0;border:0;background:transparent;padding:7px 8px;
+#fieldNavList{flex:1 1 0;min-height:0;overflow:auto;padding:7px 6px 20px;display:flex;flex-direction:column;gap:2px}
+.fieldnav-item{flex:0 0 auto;width:100%;min-width:0;border:0;background:transparent;padding:7px 8px;
   display:flex;align-items:center;gap:7px;text-align:left;border-radius:var(--rs);color:var(--fg2)}
 .fieldnav-item:hover{background:var(--surface);color:var(--acc)}
 .fieldnav-item.on{background:var(--accsoft);color:var(--acc);box-shadow:inset 2.5px 0 0 var(--acc)}
@@ -266,18 +271,21 @@ body.v-rec .lib-only{display:none!important}
 .fieldnav-item .n{flex:0 0 auto;color:var(--faint);font-size:11px;font-variant-numeric:tabular-nums}
 .fieldnav-item .t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px}
 
-#toc.collapsed{flex-basis:48px;width:48px;padding-left:5px;padding-right:5px}
-#toc.collapsed .toc-head{justify-content:center;padding-left:0;padding-right:0}
-#toc.collapsed .toc-head b,#toc.collapsed #stat,#toc.collapsed .toc-item .t,#toc.collapsed .toc-item .n{display:none}
-#toc.collapsed .toc-item{justify-content:center;padding-left:3px;padding-right:3px;gap:0}
-#toc.collapsed .toc-item .i{max-width:38px;overflow:hidden;text-overflow:ellipsis}
-#fieldNav.collapsed{flex-basis:48px;width:48px}
-#fieldNav.collapsed .fieldnav-head{justify-content:center;padding-left:5px;padding-right:5px}
+#toc.collapsed,#fieldNav.collapsed{flex-basis:64px;width:64px}
+#toc.collapsed .toc-head,#fieldNav.collapsed .fieldnav-head{flex-direction:column;justify-content:center;padding:8px 2px;gap:2px}
+.collapsed .navcol-head .navcol-short{display:block;font-size:12px;color:var(--mut)}
+#toc.collapsed .toc-head .navcol-title,#toc.collapsed #stat,#toc.collapsed .toc-item .i,
+#toc.collapsed .toc-item .t,#toc.collapsed .toc-item .n{display:none}
+#toc.collapsed #tocList,#fieldNav.collapsed #fieldNavList{padding:5px 2px 20px}
+#toc.collapsed .toc-item,#fieldNav.collapsed .fieldnav-item{justify-content:center;padding:8px 1px;gap:0;min-height:34px}
+#toc.collapsed .toc-item .ord{display:block;color:var(--acc);font-size:14px;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
+#toc.collapsed .toc-item.dim{opacity:.65}
 #fieldNav.collapsed .fieldnav-title,#fieldNav.collapsed .fieldnav-item .t{display:none}
-#fieldNav.collapsed .fieldnav-item{justify-content:center;padding-left:3px;padding-right:3px;gap:0}
+#fieldNav.collapsed .fieldnav-item .n{color:var(--fg2);font-size:14px;font-weight:700}
+#fieldNav.collapsed .fieldnav-item.on .n{color:var(--acc)}
 
-#main{flex:1 1 auto;min-width:320px;overflow:auto;padding:18px 20px 60vh;scroll-padding-top:20px}
-#main>.rec,#main>.empty{max-width:1080px;margin-left:auto;margin-right:auto}
+#main{flex:1 1 0;min-width:320px;overflow:auto;padding:18px 20px 60vh;scroll-padding-top:20px}
+#main>.rec,#main>.empty{margin-left:auto;margin-right:auto}
 #recView.json-open #main{padding-left:14px;padding-right:14px}
 #recView.json-open #main>.rec,#recView.json-open #main>.empty{max-width:none}
 #jsonPanel{position:relative;flex:0 0 var(--json-panel-width,clamp(390px,36vw,620px));min-width:0;
@@ -540,7 +548,7 @@ body:not(.v-conv) .conv-only{display:none!important}
   #navPane:not(.has-fields){width:auto;max-width:82vw}
   #toc{position:static;flex:0 0 min(200px,51vw);width:min(200px,51vw);max-width:none;min-width:0;box-shadow:none}
   #fieldNav{flex:0 0 min(160px,41vw);width:min(160px,41vw);min-width:0}
-  #toc.collapsed,#fieldNav.collapsed{flex-basis:48px;width:48px}
+  #toc.collapsed,#fieldNav.collapsed{flex-basis:64px;width:64px}
   #recView{position:relative}
   .field{grid-template-columns:1fr;gap:3px}
   .lb{font-weight:600;color:var(--fg2)}
@@ -707,12 +715,13 @@ body:not(.v-conv) .conv-only{display:none!important}
 <div id="recView" class="hide">
   <div id="navPane">
     <div id="toc">
-      <div class="navcol-head toc-head"><b>记录导航</b><button id="tocCollapse" class="navcol-toggle" type="button" title="收缩记录导航" aria-label="收缩记录导航" aria-expanded="true">‹</button></div>
+      <div class="navcol-head toc-head"><b class="navcol-title">记录导航</b><b class="navcol-short" aria-hidden="true">记录</b><button id="tocCollapse" class="navcol-toggle" type="button" title="收缩记录导航" aria-label="收缩记录导航" aria-expanded="true">‹</button></div>
       <div id="stat"></div><div id="tocList"></div>
     </div>
     <aside id="fieldNav" aria-label="字段导航" hidden>
       <div class="navcol-head fieldnav-head">
         <div class="fieldnav-title"><b>字段导航</b><span id="fieldNavRow"></span></div>
+        <b class="navcol-short" aria-hidden="true">字段</b>
         <button id="fieldNavCollapse" class="navcol-toggle" type="button" title="收缩字段导航" aria-label="收缩字段导航" aria-expanded="true">‹</button>
       </div>
       <div id="fieldNavList"></div>
@@ -869,7 +878,8 @@ body:not(.v-conv) .conv-only{display:none!important}
           <li><span class="kbd">Enter</span> 跳下一个，<span class="kbd">Shift</span>+<span class="kbd">Enter</span> 上一个，也可以点顶部的 <b>↑ ↓</b>。右边的计数器显示"第几个 / 共几个"。</li>
           <li>折叠的长文本一旦命中会<b>自动展开</b>，不会出现"搜到了却看不见"。</li>
           <li>左侧第一列选择记录；表格文件还会显示第二列<b>「字段导航」</b>，点表头就会展开并跳到当前记录的对应内容。</li>
-          <li>两列导航顶部的 <b>‹</b> 可以各自收缩成编号窄栏，再点 <b>›</b> 展开；收缩状态会自动保留。</li>
+          <li>两列导航顶部的 <b>‹</b> 可以各自收缩成序号窄栏，正文随之变宽；记录栏显示第几条，字段栏显示第几列，鼠标停留可查看完整编号、标题或表头。再点 <b>›</b> 展开，收缩状态会自动保留。</li>
+          <li>导航列表单独滚动，顶部的展开 / 收缩按钮始终可见。</li>
           <li>搜索命中时，记录和字段导航会一起选中正确位置。</li>
           <li>页面统一使用<b>宋体</b>。顶部<b>「字号」</b>提供 16、18、20、24、28、32 六档，粘贴文本、表格正文和 JSON 内容一起调整；浏览器会记住选择。</li>
           <li><b>Aa</b> 区分大小写，<b>.*</b> 用正则（写错时输入框会变红），<b>仅命中</b>只显示有命中的记录。</li>
@@ -1771,12 +1781,11 @@ function recordJsonPanelOpen() {
 
 function recordJsonPanelWidthBounds() {
   const recView = $('#recView');
-  const panel = $('#jsonPanel');
   const min = 320;
   if (matchMedia('(max-width:1180px)').matches) {
     return { min: Math.min(min, recView.clientWidth), max: Math.max(min, recView.clientWidth - 48) };
   }
-  const available = $('#main').clientWidth + panel.getBoundingClientRect().width;
+  const available = recView.clientWidth - $('#navPane').getBoundingClientRect().width;
   return { min: min, max: Math.max(min, available - 340) };
 }
 
@@ -1806,7 +1815,7 @@ function resetRecordJsonPanelWidth(showMessage) {
   recordJsonPanelWidth = null;
   $('#recView').style.removeProperty('--json-panel-width');
   try { localStorage.removeItem(JSON_PANEL_WIDTH_KEY); } catch (e) {}
-  requestAnimationFrame(syncRecordJsonResizeAria);
+  requestAnimationFrame(fitRecordJsonPanelToLayout);
   if (showMessage) flash('JSON 分隔线已恢复默认宽度');
 }
 
@@ -1824,10 +1833,7 @@ function setRecordJsonPanel(open) {
   $('#jsonTidyBtn').textContent = open ? '收起 JSON' : '{} 美化 JSON';
   $('#jsonTidyBtn').title = open ? '收起右侧 JSON 美化结果' : '在右侧直接美化当前记录的 JSON';
   if (open) {
-    requestAnimationFrame(() => {
-      if (recordJsonPanelWidth == null) resetRecordJsonPanelWidth(false);
-      else applyRecordJsonPanelWidth(recordJsonPanelWidth, false);
-    });
+    requestAnimationFrame(fitRecordJsonPanelToLayout);
     $('#q').placeholder = '输入后点击放大镜搜索 JSON…';
     if (!wasOpen) clearRecordSearchDisplay();
   } else {
@@ -2056,6 +2062,35 @@ function savedNavColumnCollapsed(key) {
   try { return localStorage.getItem(key) === '1'; } catch (e) { return false; }
 }
 
+function fitRecordJsonPanelToLayout() {
+  if (!recordJsonPanelOpen() || $('#recView').classList.contains('hide')) return;
+  if (recordJsonPanelWidth == null) $('#recView').style.removeProperty('--json-panel-width');
+  applyRecordJsonPanelWidth(recordJsonPanelWidth == null
+    ? $('#jsonPanel').getBoundingClientRect().width : recordJsonPanelWidth, false);
+}
+
+function toggleNavPane() {
+  $('#navPane').classList.toggle('hide');
+  fitRecordJsonPanelToLayout();
+}
+
+function revealNavItem(list, item) {
+  if (!item || !list.contains(item) || !list.clientHeight) return;
+  const itemRect = item.getBoundingClientRect(), listRect = list.getBoundingClientRect();
+  if (itemRect.top < listRect.top || itemRect.bottom > listRect.bottom) {
+    list.scrollTop += itemRect.top - listRect.top - (list.clientHeight - itemRect.height) / 2;
+  }
+}
+
+function updateTocItem(ti, row) {
+  const id = idOf(row), title = titleOf(rows[row], row);
+  ti.querySelector('.ord').textContent = String(row + 1);
+  ti.querySelector('.i').textContent = id;
+  ti.querySelector('.t').textContent = title;
+  ti.title = '第 ' + (row + 1) + ' 条 · ' + id + (title ? ' · ' + title : '');
+  ti.setAttribute('aria-label', ti.title);
+}
+
 function setNavColumnCollapsed(kind, collapsed, persist) {
   const isToc = kind === 'toc';
   const panel = $(isToc ? '#toc' : '#fieldNav');
@@ -2070,6 +2105,9 @@ function setNavColumnCollapsed(kind, collapsed, persist) {
   if (persist !== false) {
     try { localStorage.setItem(key, collapsed ? '1' : '0'); } catch (e) {}
   }
+  fitRecordJsonPanelToLayout();
+  const list = $(isToc ? '#tocList' : '#fieldNavList');
+  revealNavItem(list, list.querySelector('.on'));
 }
 
 function renderFieldNav(row, selectedCol) {
@@ -2087,7 +2125,8 @@ function renderFieldNav(row, selectedCol) {
     btn.className = 'fieldnav-item' + (validRow && col === selectedCol ? ' on' : '');
     btn.type = 'button';
     btn.disabled = !validRow;
-    btn.title = validRow ? '跳到“' + header + '”字段' : '当前表格没有记录';
+    btn.title = validRow ? '第 ' + (col + 1) + ' 列 · ' + (header || ('列 ' + (col + 1))) : '当前表格没有记录';
+    btn.setAttribute('aria-label', btn.title);
     const n = document.createElement('span');
     n.className = 'n';
     n.textContent = String(col + 1).padStart(2, '0');
@@ -2099,7 +2138,7 @@ function renderFieldNav(row, selectedCol) {
     list.appendChild(btn);
   });
   const selected = list.querySelector('.fieldnav-item.on');
-  if (selected) requestAnimationFrame(() => selected.scrollIntoView({ block: 'nearest' }));
+  if (selected) requestAnimationFrame(() => revealNavItem(list, selected));
 }
 
 function expandFieldValue(ve) {
@@ -2213,9 +2252,13 @@ function render() {
     const ti = document.createElement('div');
     ti.className = 'toc-item';
     ti.dataset.row = ri;
-    ti.innerHTML = '<span class="i"></span><span class="t"></span><span class="n"></span>';
-    ti.querySelector('.i').textContent = idOf(ri);
-    ti.querySelector('.t').textContent = titleOf(r, ri);
+    ti.innerHTML = '<span class="ord" aria-hidden="true"></span><span class="i"></span><span class="t"></span><span class="n"></span>';
+    updateTocItem(ti, ri);
+    ti.setAttribute('role', 'button');
+    ti.tabIndex = 0;
+    ti.onkeydown = e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); ti.click(); }
+    };
     ti.onclick = () => {
       activeRow = ri;
       activeCol = -1;
@@ -2314,10 +2357,7 @@ async function saveCell(ve) {
     rec.querySelector('.rec-hd .t').textContent = titleOf(rows[ve.row], ve.row);
   }
   const ti = $('#toc .toc-item[data-row="' + ve.row + '"]');
-  if (ti) {
-    ti.querySelector('.i').textContent = idOf(ve.row);
-    ti.querySelector('.t').textContent = titleOf(rows[ve.row], ve.row);
-  }
+  if (ti) updateTocItem(ti, ve.row);
   fillWho(); updateScopeUI();
 
   const ok = await dbPut(cf);
@@ -3504,10 +3544,7 @@ function gotoMark(i) {
 
   $$('.toc-item').forEach(ti => ti.classList.toggle('on', +ti.dataset.row === m.row));
   const on = $('#toc .toc-item.on');
-  if (on) {
-    const tr = on.getBoundingClientRect(), cr = $('#toc').getBoundingClientRect();
-    if (tr.top < cr.top || tr.bottom > cr.bottom) on.scrollIntoView({ block: 'center' });
-  }
+  revealNavItem($('#tocList'), on);
   updateCounter();
 }
 
@@ -3614,7 +3651,7 @@ $('#prev').onclick = () => inConv() ? cvGotoHit(cvHitIdx - 1)
 ['cs', 're', 'only'].forEach(id => $('#' + id).addEventListener('change', () => doSearch(true)));
 $('#who').addEventListener('change', e => setScope(e.target.value === '' ? -1 : +e.target.value));
 $('#clrWho').onclick = () => { setScope(-1); $('#q').focus(); };
-$('#tocBtn').onclick = () => $('#navPane').classList.toggle('hide');
+$('#tocBtn').onclick = toggleNavPane;
 $('#tocCollapse').onclick = () => setNavColumnCollapsed('toc', !$('#toc').classList.contains('collapsed'));
 $('#fieldNavCollapse').onclick = () => setNavColumnCollapsed('field', !$('#fieldNav').classList.contains('collapsed'));
 setNavColumnCollapsed('toc', savedNavColumnCollapsed(NAV_TOC_COLLAPSED_KEY), false);
@@ -3902,12 +3939,7 @@ $('#dlBtn').onclick = e => {
 };
 addEventListener('resize', () => {
   placeDlMenu();
-  if (recordJsonPanelOpen()) {
-    requestAnimationFrame(() => {
-      if (recordJsonPanelWidth == null) syncRecordJsonResizeAria();
-      else applyRecordJsonPanelWidth(recordJsonPanelWidth, false);
-    });
-  }
+  if (recordJsonPanelOpen()) requestAnimationFrame(fitRecordJsonPanelToLayout);
 });
 addEventListener('scroll', closeDlMenu, true);
 [['dlXlsx', 'xlsx'], ['dlCsv', 'csv'], ['dlJson', 'json'], ['dlTxt', 'txt'], ['dlMd', 'md']]
@@ -3971,7 +4003,7 @@ document.addEventListener('keydown', e => {
   }
   // Ctrl+B 收起 / 展开目录
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b' && cf && !editing) {
-    e.preventDefault(); $('#navPane').classList.toggle('hide');
+    e.preventDefault(); toggleNavPane();
   }
   // Alt+← 返回文件库
   if (e.altKey && e.key === 'ArrowLeft' && (cf || document.body.classList.contains('v-conv'))) {
