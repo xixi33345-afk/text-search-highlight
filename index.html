@@ -880,7 +880,7 @@ body:not(.v-conv) .conv-only{display:none!important}
           <li>左侧第一列选择记录；表格文件还会显示第二列<b>「字段导航」</b>，点表头就会展开并跳到当前记录的对应内容。</li>
           <li>两列导航顶部的 <b>‹</b> 可以各自收缩成序号窄栏，正文随之变宽；记录栏显示第几条，字段栏显示第几列，鼠标停留可查看完整编号、标题或表头。再点 <b>›</b> 展开，收缩状态会自动保留。</li>
           <li>导航列表单独滚动，顶部的展开 / 收缩按钮始终可见。</li>
-          <li>搜索命中时，记录和字段导航会一起选中正确位置。</li>
+          <li>滚动正文时，左侧自动高亮正文顶部正在阅读的记录，并把对应序号保持在可见范围内；字段导航也会切换到这条记录。搜索命中时，记录和字段导航会一起选中正确位置。</li>
           <li>页面统一使用<b>宋体</b>。顶部<b>「字号」</b>提供 16、18、20、24、28、32 六档，粘贴文本、表格正文和 JSON 内容一起调整；浏览器会记住选择。</li>
           <li><b>Aa</b> 区分大小写，<b>.*</b> 用正则（写错时输入框会变红），<b>仅命中</b>只显示有命中的记录。</li>
         </ul>
@@ -1755,6 +1755,7 @@ let cf = null;                  // 当前文件对象
 let headers = [], rows = [];
 let valueEls = [], marks = [], cur = -1, scopeRow = -1;
 let activeRow = 0, activeCol = -1, recordJsonSelection = null, recordJsonText = '';
+let recordCards = [], visibleRecordCards = [], recordNavFrame = 0, recordJumpScrollTop = null;
 let jpHits = [], jpHitIdx = -1;
 const NAV_TOC_COLLAPSED_KEY = 'th_nav_toc_collapsed';
 const NAV_FIELD_COLLAPSED_KEY = 'th_nav_field_collapsed';
@@ -1853,6 +1854,7 @@ function showRecordJsonEmpty(row, message) {
   activeRow = row >= 0 && row < rows.length ? row : activeRow;
   activeCol = -1;
   renderFieldNav(activeRow, activeCol);
+  syncTocSelection(activeRow);
   recordJsonSelection = null;
   recordJsonText = '';
   setRecordJsonPanel(true);
@@ -1876,6 +1878,7 @@ function showRecordJson(row, col) {
   activeRow = row;
   activeCol = col;
   renderFieldNav(row, col);
+  syncTocSelection(row);
   recordJsonSelection = { row: row, col: col };
   recordJsonText = pretty;
   setRecordJsonPanel(true);
@@ -1910,18 +1913,17 @@ function showFirstJsonForRow(row) {
 }
 
 function visibleRecordRow() {
-  const main = $('#main'), frame = main.getBoundingClientRect();
-  let best = activeRow, bestDistance = Infinity;
-  $$('#main > .rec').forEach(rec => {
-    const rect = rec.getBoundingClientRect();
-    if (rect.bottom <= frame.top || rect.top >= frame.bottom) return;
-    const distance = Math.abs(rect.top - frame.top - 8);
-    if (distance < bestDistance) {
-      bestDistance = distance;
-      best = Number(rec.id.slice(4));
-    }
-  });
-  return Number.isFinite(best) ? best : 0;
+  if (!visibleRecordCards.length) return -1;
+  const main = $('#main');
+  const readingTop = main.getBoundingClientRect().top + Math.min(24, main.clientHeight / 4);
+  // 记录按正文顺序排列；二分定位，避免每次滚动都扫描全部记录。
+  let lo = 0, hi = visibleRecordCards.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >>> 1;
+    if (visibleRecordCards[mid].getBoundingClientRect().top <= readingTop) lo = mid + 1;
+    else hi = mid;
+  }
+  return Number(visibleRecordCards[Math.max(0, lo - 1)].id.slice(4));
 }
 
 function toggleRecordJsonPanel() {
@@ -2072,6 +2074,7 @@ function fitRecordJsonPanelToLayout() {
 function toggleNavPane() {
   $('#navPane').classList.toggle('hide');
   fitRecordJsonPanelToLayout();
+  if (!$('#navPane').classList.contains('hide')) syncTocSelection(activeRow);
 }
 
 function revealNavItem(list, item) {
@@ -2080,6 +2083,45 @@ function revealNavItem(list, item) {
   if (itemRect.top < listRect.top || itemRect.bottom > listRect.bottom) {
     list.scrollTop += itemRect.top - listRect.top - (list.clientHeight - itemRect.height) / 2;
   }
+}
+
+function syncTocSelection(row) {
+  const selected = $('#tocList .toc-item[data-row="' + row + '"]');
+  $$('#tocList .toc-item.on').forEach(item => {
+    if (item === selected) return;
+    item.classList.remove('on');
+    item.removeAttribute('aria-current');
+  });
+  if (selected) {
+    selected.classList.add('on');
+    selected.setAttribute('aria-current', 'true');
+    revealNavItem($('#tocList'), selected);
+  }
+}
+
+function scrollRecordMainTo(top) {
+  const main = $('#main');
+  main.scrollTop = top;
+  // 点击或搜索已指定目标，保留其选中项；用户再次滚动后再跟随正文。
+  recordJumpScrollTop = main.scrollTop;
+}
+
+function scheduleRecordNavSync() {
+  if (recordNavFrame) return;
+  recordNavFrame = requestAnimationFrame(() => {
+    recordNavFrame = 0;
+    const main = $('#main');
+    if (!cf || $('#recView').classList.contains('hide')) return;
+    if (recordJumpScrollTop != null && Math.abs(main.scrollTop - recordJumpScrollTop) < 1) return;
+    recordJumpScrollTop = null;
+    const row = visibleRecordRow();
+    if (row !== activeRow) {
+      activeRow = row;
+      activeCol = -1;
+      renderFieldNav(row, -1);
+    }
+    syncTocSelection(row);
+  });
 }
 
 function updateTocItem(ti, row) {
@@ -2156,11 +2198,11 @@ function jumpToField(row, col) {
   expandFieldValue(ve);
   renderFieldNav(row, col);
 
-  $$('.toc-item').forEach(ti => ti.classList.toggle('on', +ti.dataset.row === row));
+  syncTocSelection(row);
   const main = $('#main');
   const fieldRect = ve.field.getBoundingClientRect();
   const mainRect = main.getBoundingClientRect();
-  main.scrollTop += fieldRect.top - mainRect.top - 12;
+  scrollRecordMainTo(main.scrollTop + fieldRect.top - mainRect.top - 12);
 
   $$('.field.jump-current').forEach(field => field.classList.remove('jump-current'));
   ve.field.classList.add('jump-current');
@@ -2174,6 +2216,7 @@ function render() {
   const expandFullText = cf && itemKind(cf) === 'text';
   main.innerHTML = ''; toc.innerHTML = '';
   valueEls = []; marks = []; cur = -1;
+  recordCards = []; visibleRecordCards = []; recordJumpScrollTop = null;
 
   if (!rows.length) {
     main.innerHTML = '<div class="empty"><div class="eic">📄</div>'
@@ -2248,6 +2291,7 @@ function render() {
     });
 
     main.appendChild(rec);
+    recordCards.push(rec);
 
     const ti = document.createElement('div');
     ti.className = 'toc-item';
@@ -2263,12 +2307,12 @@ function render() {
       activeRow = ri;
       activeCol = -1;
       renderFieldNav(ri, -1);
+      syncTocSelection(ri);
       if (recordJsonPanelOpen()) showFirstJsonForRow(ri);
       if (scopeRow >= 0 && scopeRow !== ri) { setScope(ri); return; }
       const first = marks.find(m => m.row === ri);
       if (first) { gotoMark(marks.indexOf(first)); return; }
       scrollRecToTop(ri);
-      $$('.toc-item').forEach(x => x.classList.toggle('on', +x.dataset.row === ri));
     };
     toc.appendChild(ti);
   });
@@ -2280,6 +2324,7 @@ function render() {
   if (scopeRow >= rows.length) scopeRow = -1;
   renderFieldNav(activeRow, activeCol);
   fillWho(); updateScopeUI(); doSearch(); syncFoldControls();
+  scheduleRecordNavSync();
 }
 /* ================= 修改并保存单元格 ================= */
 function startEdit(ve) {
@@ -3284,6 +3329,7 @@ function clearRecordSearchDisplay() {
     if (badge) badge.textContent = '';
     rec.style.display = '';
   });
+  visibleRecordCards = recordCards.slice();
   const noHit = $('#noHit');
   if (noHit) noHit.style.display = 'none';
 }
@@ -3346,6 +3392,7 @@ function doSearch(keepIndex) {
     rec.querySelector('.badge').textContent = n ? n + ' 处命中' : '';
     rec.style.display = (onlyHit && (outOfScope(ri) || (rx && !n))) ? 'none' : '';
   });
+  visibleRecordCards = recordCards.filter(rec => rec.style.display !== 'none');
 
   const nh = $('#noHit');
   if (nh) {
@@ -3376,6 +3423,8 @@ function doSearch(keepIndex) {
   } else {
     syncFoldControls();
     updateCounter();
+    recordJumpScrollTop = null;
+    scheduleRecordNavSync();
   }
 }
 
@@ -3520,7 +3569,7 @@ function scrollRecToTop(ri) {
   const rec = document.getElementById('rec-' + ri);
   if (!rec) return;
   const main = $('#main');
-  main.scrollTop += rec.getBoundingClientRect().top - main.getBoundingClientRect().top - 8;
+  scrollRecordMainTo(main.scrollTop + rec.getBoundingClientRect().top - main.getBoundingClientRect().top - 8);
 }
 
 function gotoMark(i) {
@@ -3540,11 +3589,8 @@ function gotoMark(i) {
 
   const main = $('#main');
   const mr = m.node.getBoundingClientRect(), pr = main.getBoundingClientRect();
-  main.scrollTop += (mr.top - pr.top) - main.clientHeight * 0.38;
-
-  $$('.toc-item').forEach(ti => ti.classList.toggle('on', +ti.dataset.row === m.row));
-  const on = $('#toc .toc-item.on');
-  revealNavItem($('#tocList'), on);
+  scrollRecordMainTo(main.scrollTop + (mr.top - pr.top) - main.clientHeight * 0.38);
+  syncTocSelection(m.row);
   updateCounter();
 }
 
@@ -3601,6 +3647,7 @@ function setScope(ri) {
     activeRow = scopeRow;
     activeCol = -1;
     renderFieldNav(activeRow, activeCol);
+    syncTocSelection(activeRow);
     if (recordJsonPanelOpen()) showFirstJsonForRow(scopeRow);
   } else {
     renderFieldNav(activeRow, activeCol);
@@ -3611,6 +3658,7 @@ function setScope(ri) {
 }
 /* ================= 事件 ================= */
 let timer = null;
+$('#main').addEventListener('scroll', scheduleRecordNavSync, { passive: true });
 $('#q').addEventListener('input', () => {
   syncQueryUI();
   clearTimeout(timer);
