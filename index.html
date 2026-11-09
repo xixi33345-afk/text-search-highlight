@@ -142,7 +142,9 @@ body.v-rec .lib-only{display:none!important}
 .column-filterbar[hidden],body:not(.v-rec) .column-filterbar{display:none}
 .column-filterbar label{font-weight:650;white-space:nowrap}
 #columnFilterCol{flex:0 1 220px;min-width:100px;max-width:100%}
+#columnFilterMode{flex:0 0 auto}
 #columnFilterText{flex:1 1 180px;min-width:100px;max-width:340px}
+#columnFilterText:disabled{background:var(--surface3);color:var(--mut);cursor:not-allowed}
 #columnFilterStatus{color:var(--mut);font-size:12px;overflow-wrap:anywhere}
 
 /* 首页 */
@@ -724,7 +726,11 @@ body:not(.v-conv) .conv-only{display:none!important}
 <form id="columnFilterBar" class="column-filterbar" hidden>
   <label for="columnFilterCol">表头筛选</label>
   <select id="columnFilterCol" aria-label="选择筛选的表头"></select>
-  <span>包含</span>
+  <select id="columnFilterMode" aria-label="筛选条件">
+    <option value="contains">包含</option>
+    <option value="empty">为空</option>
+    <option value="notEmpty">不为空</option>
+  </select>
   <input id="columnFilterText" type="text" autocomplete="off" placeholder="输入这列要包含的文字…" aria-label="该列包含的文字">
   <button id="columnFilterApply" type="submit" class="primary">筛选</button>
   <button id="columnFilterClear" type="button">清除筛选</button>
@@ -888,6 +894,7 @@ body:not(.v-conv) .conv-only{display:none!important}
           <li>表格里的长内容默认折叠，可以用顶部的<b>「展开 / 折叠」</b>一次控制全部内容。</li>
           <li>表格每个字段正文左上角都有<b>「复制」</b>，可复制该字段的完整纯文本；折叠内容也会复制全文，编辑时复制当前正在修改的内容。</li>
           <li>用顶部<b>「表头筛选」</b>选择一列，输入该列要包含的文字，点击<b>「筛选」</b>或按回车，只显示符合条件的记录。英文不区分大小写，按原文包含匹配；点击<b>「清除筛选」</b>恢复。搜索和 JSON 美化可继续在筛选结果中使用。</li>
+          <li>筛选条件也可选<b>「为空」</b>或<b>「不为空」</b>，无需输入关键词。空单元格、只有空格或换行的内容算为空；数字 0 和文字 false 算不为空。选好后点击<b>「筛选」</b>生效。</li>
           <li>在首页，顶部搜索框会<b>按历史标题过滤</b>。每条记录右侧可以删除（会二次确认）。</li>
         </ul>
       </div>
@@ -2060,6 +2067,7 @@ function initColumnFilter() {
   const isTable = itemKind(cf) === 'table';
   $('#columnFilterBar').hidden = !isTable;
   $('#columnFilterText').value = '';
+  $('#columnFilterMode').value = 'contains';
   const select = $('#columnFilterCol');
   select.replaceChildren();
   if (isTable) headers.forEach((header, col) => {
@@ -2068,8 +2076,15 @@ function initColumnFilter() {
     option.textContent = (col + 1) + '. ' + (header || '未命名列');
     select.appendChild(option);
   });
-  select.disabled = $('#columnFilterText').disabled = $('#columnFilterApply').disabled = !headers.length;
+  select.disabled = $('#columnFilterMode').disabled = $('#columnFilterApply').disabled = !headers.length;
+  syncColumnFilterInputs();
   updateColumnFilterStatus();
+}
+
+function syncColumnFilterInputs() {
+  const needsText = $('#columnFilterMode').value === 'contains';
+  $('#columnFilterText').disabled = !needsText || !headers.length;
+  $('#columnFilterText').placeholder = needsText ? '输入这列要包含的文字…' : '此条件无需输入文字';
 }
 
 function refreshColumnFilterRows() {
@@ -2078,7 +2093,11 @@ function refreshColumnFilterRows() {
     const needle = columnFilter.text.toLocaleLowerCase();
     columnFilterRows = new Set();
     rows.forEach((row, ri) => {
-      if (String(row[columnFilter.col] ?? '').toLocaleLowerCase().includes(needle)) columnFilterRows.add(ri);
+      const value = String(row[columnFilter.col] ?? '');
+      const matches = columnFilter.mode === 'empty' ? value.trim() === ''
+        : columnFilter.mode === 'notEmpty' ? value.trim() !== ''
+        : value.toLocaleLowerCase().includes(needle);
+      if (matches) columnFilterRows.add(ri);
     });
   }
   if (scopeRow >= 0 && !rowPassesColumnFilter(scopeRow)) {
@@ -2093,8 +2112,10 @@ function rowPassesColumnFilter(row) {
 }
 
 function updateColumnFilterStatus() {
+  const condition = !columnFilter ? '' : columnFilter.mode === 'empty' ? '为空'
+    : columnFilter.mode === 'notEmpty' ? '不为空' : '包含「' + columnFilter.text + '」';
   $('#columnFilterStatus').textContent = columnFilter && columnFilterRows
-    ? '「' + (headers[columnFilter.col] || '未命名列') + '」包含「' + columnFilter.text + '」：'
+    ? '「' + (headers[columnFilter.col] || '未命名列') + '」' + condition + '：'
       + columnFilterRows.size + ' / ' + rows.length + ' 条'
     : '未筛选 · 共 ' + rows.length + ' 条';
 }
@@ -2104,11 +2125,15 @@ function applyColumnFilter(clear) {
   if (clear) {
     columnFilter = null;
     $('#columnFilterText').value = '';
+    $('#columnFilterMode').value = 'contains';
+    syncColumnFilterInputs();
   } else {
-    const col = Number($('#columnFilterCol').value), text = $('#columnFilterText').value.trim();
-    if (!text) { flash('请输入这列要包含的文字', true); $('#columnFilterText').focus(); return; }
+    const col = Number($('#columnFilterCol').value), mode = $('#columnFilterMode').value;
+    const text = mode === 'contains' ? $('#columnFilterText').value.trim() : '';
+    if (!['contains', 'empty', 'notEmpty'].includes(mode)) return;
+    if (mode === 'contains' && !text) { flash('请输入这列要包含的文字', true); $('#columnFilterText').focus(); return; }
     if (!Number.isInteger(col) || col < 0 || col >= headers.length) return;
-    columnFilter = { col, text };
+    columnFilter = { col, mode, text };
   }
   doSearch();
   if (recordJsonPanelOpen() || !marks.length) {
@@ -3805,6 +3830,7 @@ $('#columnFilterText').addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.isComposing) e.preventDefault();
 });
 $('#columnFilterClear').onclick = () => applyColumnFilter(true);
+$('#columnFilterMode').addEventListener('change', syncColumnFilterInputs);
 $('#main').addEventListener('scroll', scheduleRecordNavSync, { passive: true });
 $('#q').addEventListener('input', () => {
   syncQueryUI();
