@@ -352,6 +352,17 @@ body.json-resizing,body.json-resizing *{cursor:col-resize!important;user-select:
 .vwrap{min-width:0}
 .field-copybar{display:flex;justify-content:flex-start;margin-bottom:5px}
 .field-copybar .field-copybtn{white-space:nowrap;color:var(--acc);border-color:var(--accbd);background:var(--accsoft)}
+.color-tools{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-right:2px}
+.color-label{font-size:12px;color:var(--mut);white-space:nowrap}
+.color-tools[hidden]{display:none}
+.color-chip{width:24px;height:24px;padding:0;justify-content:center;border-radius:50%;font-size:0;border-width:2px}
+.color-chip:hover{transform:scale(1.08)}
+.color-chip.red{background:#d32f2f;border-color:#b71c1c}
+.color-chip.green{background:#2e7d32;border-color:#1b5e20}
+.color-chip.blue{background:#1565c0;border-color:#0d47a1}
+.color-chip.orange{background:#e65100;border-color:#bf360c}
+.color-chip.purple{background:#7b1fa2;border-color:#4a148c}
+.color-chip.black{background:#263238;border-color:#111}
 .value{white-space:pre-wrap;word-break:break-word;border-radius:var(--rs);padding:3px 6px;margin:-3px -6px;
   font-size:var(--reading-size);line-height:1.75;transition:background .13s}
 .value:empty::after{content:'—';color:var(--faint)}
@@ -893,6 +904,7 @@ body:not(.v-conv) .conv-only{display:none!important}
           <li><b>点历史记录</b>可以重新打开；左上角<b>「← 首页」</b>返回。</li>
           <li>表格里的长内容默认折叠，可以用顶部的<b>「展开 / 折叠」</b>一次控制全部内容。</li>
           <li>表格每个字段正文左上角都有<b>「复制」</b>，可复制该字段的完整纯文本；折叠内容也会复制全文，编辑时复制当前正在修改的内容。</li>
+          <li>点击字段的<b>「修改」</b>后，先选中一段文字，再点红、绿、蓝等颜色按钮，最后点击<b>「保存」</b>。下载时选 <b>Excel（.xlsx）</b>可保留文字颜色；Markdown 附带 HTML 颜色样式，需要阅读器支持。CSV、TXT、JSON 下载只保留文字。</li>
           <li>用顶部<b>「表头筛选」</b>选择一列，输入该列要包含的文字，点击<b>「筛选」</b>或按回车，只显示符合条件的记录。英文不区分大小写，按原文包含匹配；点击<b>「清除筛选」</b>恢复。搜索和 JSON 美化可继续在筛选结果中使用。</li>
           <li>筛选条件也可选<b>「为空」</b>或<b>「不为空」</b>，无需输入关键词。空单元格、只有空格或换行的内容算为空；数字 0 和文字 false 算不为空。选好后点击<b>「筛选」</b>生效。</li>
           <li>在首页，顶部搜索框会<b>按历史标题过滤</b>。每条记录右侧可以删除（会二次确认）。</li>
@@ -1007,7 +1019,7 @@ body:not(.v-conv) .conv-only{display:none!important}
 <input type="file" id="file" multiple accept=".xlsx,.xlsm,.csv,.txt,.tsv,.json,.md" style="display:none">
 <!-- 下载格式菜单：挂在 body 上，避免被顶栏的 overflow:hidden 裁掉 -->
 <div class="menu" id="dlMenu" role="menu">
-  <button class="mi" id="dlXlsx" role="menuitem"><b>Excel（.xlsx）</b><span>保留行列顺序、表头与单元格内换行</span></button>
+  <button class="mi" id="dlXlsx" role="menuitem"><b>Excel（.xlsx）</b><span>保留文字颜色、行列顺序、表头与单元格内换行</span></button>
   <button class="mi" id="dlCsv" role="menuitem"><b>CSV（.csv）</b><span>带 BOM，Excel 双击不乱码</span></button>
   <div class="mhr"></div>
   <button class="mi" id="dlJson" role="menuitem"><b>JSON（.json）</b><span>一行一个对象，键用表头，缩进 2 空格</span></button>
@@ -1467,6 +1479,7 @@ async function commitImport() {
     }),
     idCol: idCol,
     edited: {},                 // "行,列" -> true
+    rich: {},                   // "行,列" -> [{text,color}]，只保存有颜色的文字
     added: Date.now()
   };
   $('#mask').classList.remove('open');
@@ -1784,6 +1797,14 @@ let valueEls = [], marks = [], cur = -1, scopeRow = -1;
 let activeRow = 0, activeCol = -1, recordJsonSelection = null, recordJsonText = '';
 let recordCards = [], visibleRecordCards = [], recordNavFrame = 0, recordJumpScrollTop = null;
 let columnFilter = null, columnFilterRows = null;
+const EDIT_COLORS = [
+  { name: '红色', color: '#d32f2f', cls: 'red' },
+  { name: '绿色', color: '#2e7d32', cls: 'green' },
+  { name: '蓝色', color: '#1565c0', cls: 'blue' },
+  { name: '橙色', color: '#e65100', cls: 'orange' },
+  { name: '紫色', color: '#7b1fa2', cls: 'purple' },
+  { name: '深色', color: '#263238', cls: 'black' }
+];
 let jpHits = [], jpHitIdx = -1;
 const NAV_TOC_COLLAPSED_KEY = 'th_nav_toc_collapsed';
 const NAV_FIELD_COLLAPSED_KEY = 'th_nav_field_collapsed';
@@ -1984,6 +2005,118 @@ function syncRecordJsonButton(ve) {
     ve.jsonBtn.remove();
     ve.jsonBtn = null;
   }
+}
+
+function normalizeTextColor(color) {
+  const s = String(color || '').trim().toLowerCase();
+  if (!s || s === 'inherit' || s === 'currentcolor') return '';
+  if (/^#[0-9a-f]{6}$/i.test(s)) return s.toLowerCase();
+  if (/^#[0-9a-f]{3}$/i.test(s)) return '#' + s.slice(1).split('').map(x => x + x).join('').toLowerCase();
+  const m = s.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+  if (m && [m[1], m[2], m[3]].every(x => Number(x) <= 255)) return '#' + [m[1], m[2], m[3]].map(x => Number(x).toString(16).padStart(2, '0')).join('');
+  return '';
+}
+
+function appendRichText(el, text, rich) {
+  el.replaceChildren();
+  const source = Array.isArray(rich) ? rich : [];
+  if (!source.length) { el.textContent = text; return; }
+  let offset = 0;
+  source.forEach(seg => {
+    const part = String(seg && seg.text || '');
+    if (!part) return;
+    const actual = text.slice(offset, offset + part.length);
+    if (!actual) return;
+    const color = normalizeTextColor(seg.color);
+    if (color) {
+      const span = document.createElement('span');
+      span.style.color = color;
+      span.textContent = actual;
+      el.appendChild(span);
+    } else el.appendChild(document.createTextNode(actual));
+    offset += actual.length;
+  });
+  if (offset < text.length) el.appendChild(document.createTextNode(text.slice(offset)));
+}
+
+function readEditableText(el) {
+  const out = [];
+  let trailingPlaceholder = false;
+  const push = (text, color, placeholder = false) => {
+    if (!text) return;
+    trailingPlaceholder = placeholder;
+    const c = normalizeTextColor(color);
+    const last = out[out.length - 1];
+    if (last && (last.color || '') === c) last.text += text;
+    else out.push(c ? { text, color: c } : { text });
+  };
+  const walk = (node, inheritedColor) => {
+    if (node.nodeType === Node.TEXT_NODE) { push((node.nodeValue || '').replace(/\r\n?/g, '\n'), inheritedColor); return; }
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
+    if (node.tagName === 'BR') { push('\n', inheritedColor, true); return; }
+    const own = node.style.color || node.getAttribute('color') || inheritedColor;
+    const block = node !== el && /^(DIV|P|LI)$/.test(node.tagName);
+    if (block && out.length && !out[out.length - 1].text.endsWith('\n')) push('\n', inheritedColor);
+    node.childNodes.forEach(child => walk(child, own));
+    if (block && out.length && !out[out.length - 1].text.endsWith('\n')) push('\n', inheritedColor, true);
+  };
+  el.childNodes.forEach(node => walk(node, ''));
+  // 去掉浏览器用来放光标的末尾占位换行，保留原文本中的换行和空行。
+  if (trailingPlaceholder && out.length) out[out.length - 1].text = out[out.length - 1].text.slice(0, -1);
+  const rich = out.filter(seg => seg.text);
+  return { text: rich.map(seg => seg.text).join(''), rich: richHasColor(rich) ? rich : [] };
+}
+
+function richHasColor(rich) {
+  return Array.isArray(rich) && rich.some(seg => !!normalizeTextColor(seg.color));
+}
+
+function appendRichRange(container, text, start, end, rich) {
+  if (end <= start) return;
+  let offset = 0;
+  for (const seg of Array.isArray(rich) ? rich : []) {
+    const next = offset + String(seg.text || '').length;
+    const part = text.slice(Math.max(start, offset), Math.max(start, Math.min(end, next)));
+    const color = normalizeTextColor(seg.color);
+    if (color && part) {
+      const span = document.createElement('span'); span.style.color = color; span.textContent = part; container.appendChild(span);
+    } else if (part) container.appendChild(document.createTextNode(part));
+    offset = next;
+    if (offset >= end) break;
+  }
+  if (offset < end) container.appendChild(document.createTextNode(text.slice(Math.max(start, offset), end)));
+}
+
+function makeColorTools(ve) {
+  if (ve.colorTools) return ve.colorTools;
+  const tools = document.createElement('span');
+  tools.className = 'color-tools';
+  tools.title = '选中文字后点击颜色';
+  tools.setAttribute('role', 'group');
+  tools.setAttribute('aria-label', '选中文字改色');
+  const label = document.createElement('span');
+  label.className = 'color-label'; label.textContent = '选中文字改色：';
+  tools.appendChild(label);
+  EDIT_COLORS.forEach(item => {
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'color-chip ' + item.cls;
+    btn.title = '设为' + item.name; btn.setAttribute('aria-label', btn.title);
+    btn.onmousedown = e => e.preventDefault();
+    btn.onclick = () => applyEditColor(ve, item.color);
+    tools.appendChild(btn);
+  });
+  ve.bar.insertBefore(tools, ve.bar.firstChild);
+  ve.colorTools = tools;
+  return tools;
+}
+
+function applyEditColor(ve, color) {
+  const sel = window.getSelection();
+  if (!sel || !sel.rangeCount || sel.isCollapsed || !ve.el.contains(sel.anchorNode) || !ve.el.contains(sel.focusNode)) {
+    flash('请先在正文中选中文字', true); return;
+  }
+  document.execCommand('foreColor', false, color);
+  ve.el.focus();
 }
 
 async function copyPlainText(text) {
@@ -2383,7 +2516,8 @@ function render() {
       const v = document.createElement('div');
       v.className = 'value';
       const txt = r[ci] == null ? '' : String(r[ci]);
-      v.textContent = txt;
+      const rich = cf && cf.rich && cf.rich[ri + ',' + ci];
+      appendRichText(v, txt, rich);
       if (cf && cf.edited && cf.edited[ri + ',' + ci]) v.classList.add('edited');
       wrap.appendChild(v);
 
@@ -2412,8 +2546,8 @@ function render() {
       }
       wrap.appendChild(bar);
 
-      const ve = { field: f, el: v, text: txt, row: ri, col: ci, more: fb,
-        editBtn: eb, bar: bar, jsonBtn: null };
+      const ve = { field: f, el: v, text: txt, rich: Array.isArray(rich) ? rich : [], row: ri, col: ci, more: fb,
+        editBtn: eb, bar: bar, jsonBtn: null, colorTools: null };
       if (itemKind(cf) === 'table') {
         const copybar = document.createElement('div');
         copybar.className = 'field-copybar';
@@ -2474,12 +2608,13 @@ function render() {
 function startEdit(ve) {
   clearHighlight();                       // 编辑前先去掉高亮，避免把 <mark> 吃进文本
   updateCounter();                        // 计数器跟着归零，别显示已经不存在的命中
-  ve.el.textContent = ve.text;
+  appendRichText(ve.el, ve.text, ve.rich);
   ve.el.classList.remove('fold');
   ve.el.classList.add('edit');
   ve.el.contentEditable = 'true';
   ve.el.spellcheck = false;
   ve.bar.classList.add('keep');            // 编辑中按钮常显，鼠标移开也不消失
+  makeColorTools(ve).hidden = false;
   ve.editBtn.textContent = '保存';
   ve.editBtn.classList.add('ok');
   if (ve.more) ve.more.style.display = 'none';
@@ -2503,6 +2638,7 @@ function endEditUI(ve) {
   ve.el.contentEditable = 'false';
   ve.el.classList.remove('edit');
   ve.bar.classList.remove('keep');
+  if (ve.colorTools) ve.colorTools.hidden = true;
   ve.editBtn.textContent = '修改';
   ve.editBtn.classList.remove('ok');
   if (ve.cancelBtn) ve.cancelBtn.style.display = 'none';
@@ -2515,24 +2651,29 @@ function endEditUI(ve) {
 }
 
 function cancelEdit(ve) {
-  ve.el.textContent = ve.text;
+  appendRichText(ve.el, ve.text, ve.rich);
   endEditUI(ve);
   doSearch();
 }
 
 async function saveCell(ve) {
-  // innerText 保留换行；contenteditable 里回车会生成 <div>/<br>
-  let val = ve.el.innerText.replace(/\r\n?/g, '\n').replace(/\n$/, '');
+  // 文字与颜色使用同一份解析结果，避免换行导致颜色错位。
+  const { text: val, rich } = readEditableText(ve.el);
   const old = ve.text;
+  const richChanged = JSON.stringify(rich) !== JSON.stringify(ve.rich || []);
   endEditUI(ve);
-  if (val === old) { ve.el.textContent = old; doSearch(); return; }
+  if (val === old && !richChanged) { appendRichText(ve.el, old, ve.rich); doSearch(); return; }
 
   ve.text = val;
   rows[ve.row][ve.col] = val;
   cf.rows[ve.row][ve.col] = val;
   cf.edited = cf.edited || {};
   cf.edited[ve.row + ',' + ve.col] = true;
-  ve.el.textContent = val;
+  cf.rich = cf.rich || {};
+  if (richHasColor(rich)) cf.rich[ve.row + ',' + ve.col] = rich;
+  else delete cf.rich[ve.row + ',' + ve.col];
+  ve.rich = richHasColor(rich) ? rich : [];
+  appendRichText(ve.el, val, ve.rich);
   ve.el.classList.add('edited');
   syncRecordJsonButton(ve);
   if (!ve.bar.querySelector('.editedtag')) {
@@ -2673,6 +2814,24 @@ function colName(i) {
   while (i > 0) { const r = (i - 1) % 26; s = String.fromCharCode(65 + r) + s; i = Math.floor((i - 1) / 26); }
   return s;
 }
+
+function richXmlRuns(value, rich) {
+  const text = String(value == null ? '' : value);
+  const segs = Array.isArray(rich) ? rich : [];
+  let offset = 0, xml = '';
+  segs.forEach(seg => {
+    const part = String(seg && seg.text || '');
+    if (!part || offset >= text.length) return;
+    const actual = text.slice(offset, offset + part.length);
+    if (!actual) return;
+    const color = normalizeTextColor(seg.color);
+    xml += '<r>' + (color ? '<rPr><color rgb="FF' + color.slice(1).toUpperCase() + '"/></rPr>' : '')
+      + '<t xml:space="preserve">' + xmlEsc(actual) + '</t></r>';
+    offset += actual.length;
+  });
+  if (offset < text.length) xml += '<r><t xml:space="preserve">' + xmlEsc(text.slice(offset)) + '</t></r>';
+  return xml;
+}
 /* 生成 .xlsx：行列顺序、表头、换行、文本格式都按原表保留
    所有单元格统一按文本（numFmt 49）写入，编号不会丢前导零，长数字也不会变科学计数法 */
 async function buildXlsx(file) {
@@ -2725,7 +2884,13 @@ async function buildXlsx(file) {
     for (let c = 0; c < nCol; c++) {
       const v = r[c] == null ? '' : String(r[c]);
       if (v === '') continue;
-      sheet += '<c r="' + colName(c) + rn + '" t="s" s="1"><v>' + si(v) + '</v></c>';
+      const rich = file.rich && file.rich[ri + ',' + c];
+      if (richHasColor(rich)) {
+        sheet += '<c r="' + colName(c) + rn + '" t="inlineStr" s="1"><is>'
+          + richXmlRuns(v, rich) + '</is></c>';
+      } else {
+        sheet += '<c r="' + colName(c) + rn + '" t="s" s="1"><v>' + si(v) + '</v></c>';
+      }
     }
     sheet += '</row>';
   });
@@ -2864,6 +3029,7 @@ function buildMd(file) {
     .replace(/\\/g, '\\\\')
     .replace(/\|/g, '\\|')
     .replace(/\r\n?|\n/g, '<br>');
+  const htmlCell = v => cell(String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'));
   const heads = file.headers.map((h, c) => cell(h === '' || h == null ? '列' + (c + 1) : h));
   const lines = [];
   lines.push('# ' + String(file.name || '表格').replace(/\n/g, ' '));
@@ -2873,9 +3039,25 @@ function buildMd(file) {
   lines.push('');
   lines.push('| ' + heads.join(' | ') + ' |');
   lines.push('| ' + heads.map(() => '---').join(' | ') + ' |');
-  file.rows.forEach(r => {
+  file.rows.forEach((r, ri) => {
     const a = [];
-    for (let c = 0; c < file.headers.length; c++) a.push(cell(r[c]));
+    for (let c = 0; c < file.headers.length; c++) {
+      const rich = file.rich && file.rich[ri + ',' + c];
+      if (richHasColor(rich)) {
+        const text = String(r[c] == null ? '' : r[c]);
+        let offset = 0, html = '';
+        rich.forEach(seg => {
+          const part = String(seg.text || ''), actual = text.slice(offset, offset + part.length);
+          if (!actual) return;
+          const color = normalizeTextColor(seg.color);
+          const safe = htmlCell(actual);
+          html += color ? '<span style="color:' + color + '">' + safe + '</span>' : safe;
+          offset += actual.length;
+        });
+        if (offset < text.length) html += htmlCell(text.slice(offset));
+        a.push(html);
+      } else a.push(cell(r[c]));
+    }
     lines.push('| ' + a.join(' | ') + ' |');
   });
   lines.push('');
@@ -3454,7 +3636,7 @@ function buildRegex() {
 function clearHighlight() {
   valueEls.forEach(v => {
     if (v.el.dataset.hl === '1' && !v.el.classList.contains('edit')) {
-      v.el.textContent = v.text; v.el.dataset.hl = '';
+      appendRichText(v.el, v.text, v.rich); v.el.dataset.hl = '';
     }
   });
   marks = []; cur = -1;
@@ -3513,9 +3695,9 @@ function doSearch(keepIndex) {
       let last = 0, m, hit = 0;
       while ((m = rx.exec(v.text)) !== null) {
         if (m[0] === '') { rx.lastIndex++; continue; }
-        if (m.index > last) frag.appendChild(document.createTextNode(v.text.slice(last, m.index)));
+        if (m.index > last) appendRichRange(frag, v.text, last, m.index, v.rich);
         const mk = document.createElement('mark');
-        mk.textContent = m[0];
+        appendRichRange(mk, v.text, m.index, m.index + m[0].length, v.rich);
         frag.appendChild(mk);
         marks.push({ node: mk, row: v.row, col: v.col });
         perRow[v.row] = (perRow[v.row] || 0) + 1;
@@ -3523,7 +3705,7 @@ function doSearch(keepIndex) {
         if (++hit > 5000) break;
       }
       if (hit) {
-        if (last < v.text.length) frag.appendChild(document.createTextNode(v.text.slice(last)));
+        if (last < v.text.length) appendRichRange(frag, v.text, last, v.text.length, v.rich);
         v.el.textContent = '';
         v.el.appendChild(frag);
         v.el.dataset.hl = '1';
