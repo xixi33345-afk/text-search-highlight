@@ -122,6 +122,9 @@ label.ck:has(input:checked){background:var(--accsoft);color:var(--acc);font-weig
 .counter b{color:var(--acc)}
 #clrWho{display:none}
 #clrWho.show{display:inline-flex}
+.scope-current{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+#scopeCurrentRow{width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mut);font-size:12px}
+#scopeCurrentBtn{width:100px;justify-content:center;padding:6px 9px}
 body.v-lib .rec-only{display:none!important}
 body.v-rec .lib-only{display:none!important}
 /* 空间不够时换行，确保字号和搜索控件始终可用。 */
@@ -626,6 +629,10 @@ body:not(.v-conv) .conv-only{display:none!important}
   </div>
 
   <select id="who" class="rec-only" title="限定只在某一条记录内搜索"><option value="">全部记录</option></select>
+  <div class="scope-current rec-only">
+    <span id="scopeCurrentRow">当前无记录</span>
+    <button id="scopeCurrentBtn" class="onlybtn" type="button" aria-pressed="false" disabled>只搜这条</button>
+  </div>
   <button id="clrWho" class="rec-only" title="取消限定，恢复搜索全部记录">✕ 取消限定</button>
 
   <span class="grow"></span>
@@ -928,7 +935,7 @@ body:not(.v-conv) .conv-only{display:none!important}
       <div class="hsec">
         <h4><span class="hn">5</span>只搜某一条记录</h4>
         <ul>
-          <li>两种方式：顶部<b>下拉框</b>选一条，或在记录标题栏点<b>「只搜这条」</b>。</li>
+          <li>两种方式：顶部<b>下拉框</b>选一条，或点顶部固定的<b>「只搜这条」</b>。按钮旁会显示当前记录，跟随正文滚动、导航和搜索跳转更新；再次点击<b>「取消限定」</b>恢复搜索全部记录。</li>
           <li>限定后计数器只统计这条内的命中，上一个/下一个也只在这条里循环，其他记录不产生高亮。</li>
           <li>限定生效时下拉框变蓝、目录该条加蓝色竖条、卡片加蓝色描边。点<b>「✕ 取消限定」</b>恢复全部。</li>
           <li>已限定时<b>点目录里另一条</b>就直接换成搜那一条，不用先取消。</li>
@@ -2350,6 +2357,7 @@ function revealNavItem(list, item) {
 }
 
 function syncTocSelection(row) {
+  syncCurrentScopeButton(row);
   const selected = $('#tocList .toc-item[data-row="' + row + '"]');
   $$('#tocList .toc-item.on').forEach(item => {
     if (item === selected) return;
@@ -2501,11 +2509,7 @@ function render() {
     const si = document.createElement('span'); si.className = 'i'; si.textContent = idOf(ri);
     const st = document.createElement('span'); st.className = 't'; st.textContent = titleOf(r, ri);
     const sb = document.createElement('span'); sb.className = 'badge';
-    const ob = document.createElement('button');
-    ob.className = 'onlybtn'; ob.textContent = '只搜这条';
-    ob.title = '把搜索范围限定在这条记录内（再点一次恢复全部）';
-    ob.onclick = () => setScope(scopeRow === ri ? -1 : ri);
-    hd.append(si, st, sb, ob);
+    hd.append(si, st, sb);
     rec.appendChild(hd);
 
     headers.forEach((h, ci) => {
@@ -3939,6 +3943,7 @@ function gotoMark(i) {
 }
 
 function updateStat() {
+  syncCurrentScopeButton(activeRow);
   const st = $('#stat');
   st.textContent = rows.length
     ? ((columnFilterRows ? columnFilterRows.size + ' / ' : '') + rows.length + ' 条记录 · ' + headers.length + ' 列'
@@ -3968,6 +3973,22 @@ function fillWho() {
   sel.value = (scopeRow >= 0 && scopeRow < rows.length) ? String(scopeRow) : '';
 }
 
+function syncCurrentScopeButton(row) {
+  const btn = $('#scopeCurrentBtn'), label = $('#scopeCurrentRow');
+  const card = recordCards[row];
+  const valid = !!cf && row >= 0 && row < rows.length && card && card.style.display !== 'none';
+  const on = valid && scopeRow === row;
+  btn.disabled = !valid;
+  btn.dataset.row = valid ? String(row) : '';
+  btn.classList.toggle('act', !!on);
+  btn.setAttribute('aria-pressed', String(!!on));
+  btn.textContent = on ? '取消限定' : '只搜这条';
+  label.textContent = valid ? '第 ' + (row + 1) + ' 条 · ' + idOf(row) : '当前无记录';
+  label.title = valid ? label.textContent + ' · ' + titleOf(rows[row], row) : '';
+  btn.title = on ? '取消限定，恢复搜索全部记录'
+    : valid ? '只搜索' + label.textContent : '当前没有可搜索的记录';
+}
+
 function updateScopeUI() {
   const on = scopeRow >= 0 && scopeRow < rows.length;
   const sel = $('#who');
@@ -3976,12 +3997,8 @@ function updateScopeUI() {
   $('#clrWho').classList.toggle('show', on);
   $$('.toc-item').forEach(ti => ti.classList.toggle('scoped', on && +ti.dataset.row === scopeRow));
   $$('.rec').forEach(rec => {
-    const b = rec.querySelector('.onlybtn');
-    if (!b) return;
     const a = on && +rec.id.slice(4) === scopeRow;
     rec.classList.toggle('isscoped', a);
-    b.classList.toggle('act', a);
-    b.textContent = a ? '✓ 已限定' : '只搜这条';
   });
   updateStat();
 }
@@ -4054,6 +4071,13 @@ $('#prev').onclick = () => inConv() ? cvGotoHit(cvHitIdx - 1)
 ['cs', 're', 'only'].forEach(id => $('#' + id).addEventListener('change', () => doSearch(true)));
 $('#who').addEventListener('change', e => setScope(e.target.value === '' ? -1 : +e.target.value));
 $('#clrWho').onclick = () => { setScope(-1); $('#q').focus(); };
+$('#scopeCurrentBtn').onclick = () => {
+  syncCurrentScopeButton(activeRow);
+  const btn = $('#scopeCurrentBtn');
+  if (btn.disabled) return;
+  const row = Number(btn.dataset.row);
+  setScope(scopeRow === row ? -1 : row);
+};
 $('#tocBtn').onclick = toggleNavPane;
 $('#tocCollapse').onclick = () => setNavColumnCollapsed('toc', !$('#toc').classList.contains('collapsed'));
 $('#fieldNavCollapse').onclick = () => setNavColumnCollapsed('field', !$('#fieldNav').classList.contains('collapsed'));
