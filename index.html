@@ -149,6 +149,10 @@ body.v-rec .lib-only{display:none!important}
 #columnFilterText{flex:1 1 180px;min-width:100px;max-width:340px}
 #columnFilterText:disabled{background:var(--surface3);color:var(--mut);cursor:not-allowed}
 #columnFilterStatus{color:var(--mut);font-size:12px;overflow-wrap:anywhere}
+.record-pager{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:7px 14px;flex:0 0 auto;background:var(--surface);border-bottom:1px solid var(--bd)}
+.record-pager[hidden],body:not(.v-rec) .record-pager{display:none}
+.record-pager input{width:68px;font:inherit;padding:5px;border:1px solid var(--bd2);border-radius:var(--rs);color:var(--fg);background:var(--surface)}
+.record-pager span{color:var(--mut);font-size:12px}
 
 /* 首页 */
 #libView{flex:1 1 auto;overflow:auto;padding:22px 24px 60px}
@@ -754,6 +758,14 @@ body:not(.v-conv) .conv-only{display:none!important}
   <button id="columnFilterClear" type="button">清除筛选</button>
   <span id="columnFilterStatus" role="status" aria-live="polite"></span>
 </form>
+<form id="recordPager" class="record-pager" hidden aria-label="记录分页">
+  <button id="pagePrev" type="button">上一页</button>
+  <span id="pageInfo"></span>
+  <button id="pageNext" type="button">下一页</button>
+  <label for="pageNumber">跳到</label><input id="pageNumber" type="number" min="1" step="1" value="1" aria-label="页码">
+  <button type="submit">跳页</button>
+  <span>每页 50 条；搜索、筛选和下载覆盖全部记录</span>
+</form>
 <div id="recView" class="hide">
   <div id="navPane">
     <div id="toc">
@@ -910,6 +922,7 @@ body:not(.v-conv) .conv-only{display:none!important}
           <li>首页下方按<b>文本粘贴、表格导入、JSON 美化</b>分别显示历史记录。</li>
           <li><b>点历史记录</b>可以重新打开；左上角<b>「← 首页」</b>返回。</li>
           <li>表格里的长内容默认折叠，可以用顶部的<b>「展开 / 折叠」</b>一次控制全部内容。</li>
+          <li>大表格每页显示 <b>50 条</b>，用顶部<b>「上一页 / 下一页 / 跳页」</b>翻页。搜索、筛选和下载仍覆盖整份表格；左侧导航和搜索命中会自动跳到对应页。超过 50 条时，请输入关键词后<b>点击搜索或按回车</b>。</li>
           <li>表格每个字段正文左上角都有<b>「复制」</b>，可复制该字段的完整纯文本；折叠内容也会复制全文，编辑时复制当前正在修改的内容。</li>
           <li>点击字段的<b>「修改」</b>后，先选中一段文字，再点红、绿、蓝等颜色按钮，最后点击<b>「保存」</b>。下载时选 <b>Excel（.xlsx）</b>可保留文字颜色；Markdown 附带 HTML 颜色样式，需要阅读器支持。CSV、TXT、JSON 下载只保留文字。</li>
           <li>用顶部<b>「表头筛选」</b>选择一列，输入该列要包含的文字，点击<b>「筛选」</b>或按回车，只显示符合条件的记录。英文不区分大小写，按原文包含匹配；点击<b>「清除筛选」</b>恢复。搜索和 JSON 美化可继续在筛选结果中使用。</li>
@@ -1804,6 +1817,52 @@ let valueEls = [], marks = [], cur = -1, scopeRow = -1;
 let activeRow = 0, activeCol = -1, recordJsonSelection = null, recordJsonText = '';
 let recordCards = [], visibleRecordCards = [], recordNavFrame = 0, recordJumpScrollTop = null;
 let columnFilter = null, columnFilterRows = null;
+const RECORD_PAGE_SIZE = 50;
+let recordPage = 0, visibleRows = [], visibleRowPositions = new Map(), tocItems = [];
+let hitsByCell = new Map(), rowHitCounts = new Map(), searchGeneration = 0, searchPending = false, searchSignature = '';
+let foldAll = true, foldAllExplicit = false, foldOverrides = new Map(), whoCacheKey = '', lastNavRow = null;
+
+function hasUnsavedEdit() {
+  if (!valueEls.some(v => v.el.classList.contains('edit'))) return false;
+  flash('请先保存或取消正在编辑的内容', true);
+  return true;
+}
+
+function updateRecordPager() {
+  const pages = Math.max(1, Math.ceil(visibleRows.length / RECORD_PAGE_SIZE));
+  $('#recordPager').hidden = rows.length <= RECORD_PAGE_SIZE;
+  $('#pageInfo').textContent = '第 ' + (recordPage + 1) + ' / ' + pages + ' 页 · ' + visibleRows.length + ' 条';
+  $('#pageNumber').value = String(recordPage + 1);
+  $('#pageNumber').max = String(pages);
+  $('#pagePrev').disabled = recordPage === 0 || searchPending;
+  $('#pageNext').disabled = recordPage >= pages - 1 || searchPending;
+}
+
+function changeRecordPage(page) {
+  if (searchPending || hasUnsavedEdit()) return;
+  const last = Math.max(0, Math.ceil(visibleRows.length / RECORD_PAGE_SIZE) - 1);
+  if (!Number.isInteger(page) || page < 0 || page > last) { flash('请输入有效页码', true); return; }
+  if (page === recordPage) return;
+  recordPage = page;
+  renderRecordPage();
+  activeRow = visibleRows[page * RECORD_PAGE_SIZE] ?? -1;
+  activeCol = -1;
+  renderFieldNav(activeRow, -1); syncTocSelection(activeRow);
+  scrollRecordMainTo(0);
+  if (recordJsonPanelOpen()) showFirstJsonForRow(activeRow);
+}
+
+function ensureRecordPage(row) {
+  const position = visibleRowPositions.get(row);
+  if (position == null) return false;
+  const page = Math.floor(position / RECORD_PAGE_SIZE);
+  if (page !== recordPage) {
+    if (hasUnsavedEdit()) return false;
+    recordPage = page;
+    renderRecordPage();
+  }
+  return true;
+}
 const EDIT_COLORS = [
   { name: '红色', color: '#d32f2f', cls: 'red' },
   { name: '绿色', color: '#2e7d32', cls: 'green' },
@@ -1894,7 +1953,7 @@ function setRecordJsonPanel(open) {
     $('#q').placeholder = '输入后点击放大镜搜索 JSON…';
     if (!wasOpen) clearRecordSearchDisplay();
   } else {
-    $('#q').placeholder = cf ? '在这个文件里搜索…' : '按历史标题过滤…';
+    $('#q').placeholder = cf ? (rows.length > RECORD_PAGE_SIZE ? '输入后点击搜索，搜索全部记录…' : '在这个文件里搜索…') : '按历史标题过滤…';
     jpHits = []; jpHitIdx = -1;
     markRecordJsonField(-1, -1);
   }
@@ -1926,6 +1985,8 @@ function showRecordJsonEmpty(row, message) {
 
 function showRecordJson(row, col) {
   if (!rows[row] || col < 0 || col >= headers.length) return false;
+  if (hasUnsavedEdit()) return false;
+  if (!ensureRecordPage(row)) return false;
   const pretty = prettyRecordJson(rows[row][col]);
   if (pretty == null) {
     showRecordJsonEmpty(row, '这个字段不是合法的 JSON 对象或数组');
@@ -1983,6 +2044,7 @@ function visibleRecordRow() {
 }
 
 function toggleRecordJsonPanel() {
+  if (hasUnsavedEdit()) return;
   if (!cf) return;
   if (recordJsonPanelOpen()) { closeRecordJsonPanel(true); return; }
   if (!visibleRecordCards.length) { flash('当前没有可查看的记录', true); return; }
@@ -2156,6 +2218,7 @@ async function copyFieldText(ve, btn) {
 }
 
 function showLib() {
+  searchGeneration++; searchPending = false;
   closeRecordJsonPanel(false);
   cf = null; headers = []; rows = []; valueEls = []; marks = []; cur = -1; scopeRow = -1;
   activeRow = 0; activeCol = -1; recordJsonSelection = null; recordJsonText = '';
@@ -2179,6 +2242,8 @@ function openFile(id) {
     return;
   }
   cf = f;
+  searchGeneration++; searchPending = false; searchSignature = ''; whoCacheKey = '';
+  recordPage = 0; foldAll = true; foldAllExplicit = false; foldOverrides.clear();
   headers = f.headers.slice();
   rows = f.rows.map(r => r.slice());
   scopeRow = -1;
@@ -2190,7 +2255,7 @@ function openFile(id) {
   $('#recView').classList.remove('hide');
   $('#curName').textContent = f.name;
   $('#q').value = '';
-  $('#q').placeholder = '在这个文件里搜索…';
+  $('#q').placeholder = rows.length > RECORD_PAGE_SIZE ? '输入后点击搜索，搜索全部记录…' : '在这个文件里搜索…';
   $('#q').classList.remove('bad');
   $('#foldControls').hidden = itemKind(f) !== 'table';
   initColumnFilter();
@@ -2260,8 +2325,9 @@ function updateColumnFilterStatus() {
     : '未筛选 · 共 ' + rows.length + ' 条';
 }
 
-function applyColumnFilter(clear) {
+async function applyColumnFilter(clear) {
   if (!cf || itemKind(cf) !== 'table') return;
+  if (hasUnsavedEdit()) return;
   if (clear) {
     columnFilter = null;
     $('#columnFilterText').value = '';
@@ -2275,9 +2341,9 @@ function applyColumnFilter(clear) {
     if (!Number.isInteger(col) || col < 0 || col >= headers.length) return;
     columnFilter = { col, mode, text };
   }
-  doSearch();
+  if (!(await doSearch())) return;
   if (recordJsonPanelOpen() || !marks.length) {
-    activeRow = visibleRecordCards.length ? Number(visibleRecordCards[0].id.slice(4)) : -1;
+    activeRow = visibleRows[0] ?? -1;
     activeCol = -1;
     renderFieldNav(activeRow, -1);
     syncTocSelection(activeRow);
@@ -2314,11 +2380,14 @@ function syncFoldControls() {
   group.hidden = !isTable;
   if (!isTable) return;
   const foldable = valueEls.filter(v => v.more && !v.el.classList.contains('edit'));
-  $('#expandAll').disabled = !foldable.some(v => v.el.classList.contains('fold'));
-  $('#collapseAll').disabled = !foldable.some(v => !v.el.classList.contains('fold'));
+  const anyFolded = foldable.some(v => v.el.classList.contains('fold'));
+  const anyExpanded = foldable.some(v => !v.el.classList.contains('fold'));
+  $('#expandAll').disabled = !anyFolded && (rows.length <= RECORD_PAGE_SIZE || (!foldAll && ![...foldOverrides.values()].some(Boolean)));
+  $('#collapseAll').disabled = !anyExpanded && (rows.length <= RECORD_PAGE_SIZE || (foldAll && ![...foldOverrides.values()].some(v => !v)));
 }
 
 function setAllFolded(folded) {
+  foldAll = folded; foldAllExplicit = true; foldOverrides.clear();
   let changed = 0;
   valueEls.forEach(v => {
     if (!v.more || v.el.classList.contains('edit')) return;
@@ -2358,6 +2427,8 @@ function revealNavItem(list, item) {
 
 function syncTocSelection(row) {
   syncCurrentScopeButton(row);
+  if (lastNavRow === row) return;
+  lastNavRow = row;
   const selected = $('#tocList .toc-item[data-row="' + row + '"]');
   $$('#tocList .toc-item.on').forEach(item => {
     if (item === selected) return;
@@ -2459,10 +2530,12 @@ function expandFieldValue(ve) {
   if (!ve || !ve.more || !ve.el.classList.contains('fold')) return;
   ve.el.classList.remove('fold');
   ve.more.textContent = '收起';
+  foldOverrides.set(ve.row + ',' + ve.col, false);
   syncFoldControls();
 }
 
 function jumpToField(row, col) {
+  if (!ensureRecordPage(row)) return;
   const ve = valueEls.find(v => v.row === row && v.col === col);
   if (!ve) return;
   activeRow = row;
@@ -2483,23 +2556,25 @@ function jumpToField(row, col) {
 }
 
 /* ================= 渲染单个文件的记录 ================= */
-function render() {
-  const main = $('#main'), toc = $('#tocList');
+function renderRecordPage() {
+  const main = $('#main');
   const expandFullText = cf && itemKind(cf) === 'text';
-  main.innerHTML = ''; toc.innerHTML = '';
-  valueEls = []; marks = []; cur = -1;
+  valueEls.forEach(v => (hitsByCell.get(v.row + ',' + v.col) || []).forEach(m => { m.node = null; }));
+  main.replaceChildren();
+  valueEls = [];
   recordCards = []; visibleRecordCards = []; recordJumpScrollTop = null;
-
-  if (!rows.length) {
+  const pages = Math.max(1, Math.ceil(visibleRows.length / RECORD_PAGE_SIZE));
+  recordPage = Math.min(recordPage, pages - 1);
+  updateRecordPager();
+  if (!visibleRows.length) {
     main.innerHTML = '<div class="empty"><div class="eic">📄</div>'
-      + '<div class="eti">这个文件里没有记录</div><div>可能表头下面没有数据行</div></div>';
-    $('#stat').textContent = '空文件';
+      + '<div class="eti">' + (rows.length ? '没有符合条件的记录' : '这个文件里没有记录') + '</div></div>';
+    activeRow = -1;
     renderFieldNav(-1, -1);
-    fillWho(); updateScopeUI(); updateCounter(); syncFoldControls();
-    return;
   }
-
-  rows.forEach((r, ri) => {
+  const fragment = document.createDocumentFragment();
+  visibleRows.slice(recordPage * RECORD_PAGE_SIZE, (recordPage + 1) * RECORD_PAGE_SIZE).forEach(ri => {
+    const r = rows[ri];
     const rec = document.createElement('section');
     rec.className = 'rec';
     rec.id = 'rec-' + ri;
@@ -2509,6 +2584,9 @@ function render() {
     const si = document.createElement('span'); si.className = 'i'; si.textContent = idOf(ri);
     const st = document.createElement('span'); st.className = 't'; st.textContent = titleOf(r, ri);
     const sb = document.createElement('span'); sb.className = 'badge';
+    const hits = rowHitCounts.get(ri) || 0;
+    sb.textContent = hits ? hits + ' 处命中' : '';
+    rec.classList.toggle('isscoped', scopeRow === ri);
     hd.append(si, st, sb);
     rec.appendChild(hd);
 
@@ -2533,13 +2611,15 @@ function render() {
       bar.appendChild(eb);
       let fb = null;
       if (!expandFullText && (txt.length > 220 || (txt.match(/\n/g) || []).length > 5)) {
-        v.classList.add('fold');
+        const folded = foldOverrides.get(ri + ',' + ci) ?? foldAll;
+        v.classList.toggle('fold', folded);
         fb = document.createElement('button');
-        fb.className = 'mini'; fb.textContent = '展开全文';
+        fb.className = 'mini'; fb.textContent = folded ? '展开全文' : '收起';
         fb.title = '展开 / 收起长文本';
         fb.onclick = () => {
           const folded = v.classList.toggle('fold');
           fb.textContent = folded ? '展开全文' : '收起';
+          foldOverrides.set(ri + ',' + ci, folded);
           syncFoldControls();
         };
         bar.appendChild(fb);
@@ -2570,11 +2650,27 @@ function render() {
       f.append(lb, wrap);
       rec.appendChild(f);
       valueEls.push(ve);
+      highlightVisibleCell(ve);
     });
 
-    main.appendChild(rec);
-    recordCards.push(rec);
+    fragment.appendChild(rec);
+    recordCards[ri] = rec;
+    visibleRecordCards.push(rec);
+  });
+  main.appendChild(fragment);
+  const nh = document.createElement('div');
+  nh.className = 'empty'; nh.id = 'noHit'; nh.style.display = 'none';
+  main.appendChild(nh);
+  syncFoldControls(); updateStat();
+}
 
+function render() {
+  clearHighlight();
+  visibleRows = rows.map((_, ri) => ri);
+  visibleRowPositions = new Map(visibleRows.map((ri, i) => [ri, i]));
+  const toc = $('#tocList'), fragment = document.createDocumentFragment();
+  toc.replaceChildren(); tocItems = []; lastNavRow = null;
+  rows.forEach((r, ri) => {
     const ti = document.createElement('div');
     ti.className = 'toc-item';
     ti.dataset.row = ri;
@@ -2586,6 +2682,7 @@ function render() {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); ti.click(); }
     };
     ti.onclick = () => {
+      if (!ensureRecordPage(ri)) return;
       activeRow = ri;
       activeCol = -1;
       renderFieldNav(ri, -1);
@@ -2596,20 +2693,19 @@ function render() {
       if (first) { gotoMark(marks.indexOf(first)); return; }
       scrollRecToTop(ri);
     };
-    toc.appendChild(ti);
+    fragment.appendChild(ti);
+    tocItems.push(ti);
   });
-
-  const nh = document.createElement('div');
-  nh.className = 'empty'; nh.id = 'noHit'; nh.style.display = 'none';
-  main.appendChild(nh);
-
+  toc.appendChild(fragment);
+  renderRecordPage();
   if (scopeRow >= rows.length) scopeRow = -1;
   renderFieldNav(activeRow, activeCol);
-  fillWho(); updateScopeUI(); doSearch(); syncFoldControls();
+  fillWho(); updateScopeUI(); updateCounter(); syncFoldControls();
   scheduleRecordNavSync();
 }
 /* ================= 修改并保存单元格 ================= */
 function startEdit(ve) {
+  searchGeneration++; searchPending = false; searchSignature = '';
   clearHighlight();                       // 编辑前先去掉高亮，避免把 <mark> 吃进文本
   updateCounter();                        // 计数器跟着归零，别显示已经不存在的命中
   appendRichText(ve.el, ve.text, ve.rich);
@@ -2649,6 +2745,7 @@ function endEditUI(ve) {
   if (ve.more) {
     ve.more.style.display = '';
     ve.el.classList.add('fold');
+    foldOverrides.set(ve.row + ',' + ve.col, true);
     ve.more.textContent = '展开全文';
   }
   syncFoldControls();
@@ -2692,6 +2789,7 @@ async function saveCell(ve) {
   }
   const ti = $('#toc .toc-item[data-row="' + ve.row + '"]');
   if (ti) updateTocItem(ti, ve.row);
+  whoCacheKey = '';
   fillWho(); updateScopeUI();
 
   const ok = await dbPut(cf);
@@ -3599,6 +3697,7 @@ async function cvLoadFile(f) {
 }
 
 function showConv() {
+  searchGeneration++; searchPending = false;
   cf = null; headers = []; rows = []; valueEls = []; marks = []; cur = -1; scopeRow = -1;
   closeDlMenu();
   document.body.className = 'v-conv';
@@ -3643,137 +3742,146 @@ function clearHighlight() {
       appendRichText(v.el, v.text, v.rich); v.el.dataset.hl = '';
     }
   });
-  marks = []; cur = -1;
+  marks = []; cur = -1; hitsByCell = new Map(); rowHitCounts = new Map();
+}
+
+function highlightVisibleCell(v) {
+  const hits = hitsByCell.get(v.row + ',' + v.col);
+  if (!hits || !hits.length) return;
+  const fragment = document.createDocumentFragment();
+  let last = 0;
+  hits.forEach(hit => {
+    appendRichRange(fragment, v.text, last, hit.start, v.rich);
+    const node = document.createElement('mark');
+    appendRichRange(node, v.text, hit.start, hit.end, v.rich);
+    if (marks[cur] === hit) node.classList.add('cur');
+    hit.node = node;
+    fragment.appendChild(node);
+    last = hit.end;
+  });
+  appendRichRange(fragment, v.text, last, v.text.length, v.rich);
+  v.el.replaceChildren(fragment); v.el.dataset.hl = '1';
+  if (v.more && !foldAllExplicit && !foldOverrides.has(v.row + ',' + v.col)) {
+    v.el.classList.remove('fold'); v.more.textContent = '收起';
+  }
+}
+
+function updateRecordVisibility(hasQuery) {
+  const onlyHit = !recordJsonPanelOpen() && $('#only').checked;
+  const scoped = !recordJsonPanelOpen() && scopeRow >= 0;
+  visibleRows = [];
+  rows.forEach((_, ri) => {
+    const count = rowHitCounts.get(ri) || 0;
+    const outOfScope = scoped && ri !== scopeRow;
+    const visible = rowPassesColumnFilter(ri) && !(onlyHit && (outOfScope || (hasQuery && !count)));
+    if (visible) visibleRows.push(ri);
+    const ti = tocItems[ri];
+    if (ti) {
+      ti.querySelector('.n').textContent = count ? count + '处' : '';
+      ti.classList.toggle('dim', outOfScope || (hasQuery && !count));
+      ti.style.display = visible ? '' : 'none';
+    }
+  });
+  visibleRowPositions = new Map(visibleRows.map((ri, i) => [ri, i]));
+  if (!visibleRowPositions.has(activeRow)) activeRow = visibleRows[0] ?? -1;
+  recordPage = Math.floor((visibleRowPositions.get(activeRow) || 0) / RECORD_PAGE_SIZE);
+  renderRecordPage();
+  fillWho(); updateScopeUI();
+  renderFieldNav(activeRow, activeCol);
+  lastNavRow = null; syncTocSelection(activeRow);
 }
 
 function clearRecordSearchDisplay() {
+  searchGeneration++; searchPending = false; searchSignature = '';
   clearHighlight();
   refreshColumnFilterRows();
-  $$('.toc-item').forEach(ti => {
-    const count = ti.querySelector('.n');
-    if (count) count.textContent = '';
-    ti.classList.remove('dim');
-    ti.style.display = rowPassesColumnFilter(+ti.dataset.row) ? '' : 'none';
-  });
-  $$('#main > .rec').forEach(rec => {
-    const badge = rec.querySelector('.badge');
-    if (badge) badge.textContent = '';
-    rec.style.display = rowPassesColumnFilter(Number(rec.id.slice(4))) ? '' : 'none';
-  });
-  visibleRecordCards = recordCards.filter(rec => rec.style.display !== 'none');
-  const noHit = $('#noHit');
-  if (noHit) {
-    noHit.textContent = '没有符合筛选条件的记录，请修改或清除筛选';
-    noHit.style.display = columnFilterRows && !columnFilterRows.size ? '' : 'none';
-  }
-  fillWho(); updateStat();
+  updateRecordVisibility(false);
 }
 
-function doSearch(keepIndex) {
-  if (document.body.classList.contains('v-conv')) { cvFind(); return; }
-  if (!cf) { filterLib(); return; }
+function recordSearchKey() {
+  return JSON.stringify([$('#q').value, $('#cs').checked, $('#re').checked, $('#only').checked, scopeRow, columnFilter]);
+}
+
+// 扫描全部数据，只记录命中位置；每个时间片后归还主线程，允许继续输入或取消搜索。
+async function collectRecordMatches(data, rx, allowedRows, scope, cancelled, yieldNow) {
+  const found = [], cells = new Map(), counts = new Map();
+  let sliceStart = performance.now();
+  for (let row = 0; row < data.length; row++) {
+    if (cancelled()) return null;
+    if ((scope >= 0 && row !== scope) || (allowedRows && !allowedRows.has(row))) continue;
+    for (let col = 0; col < data[row].length; col++) {
+      const text = String(data[row][col] ?? '');
+      if (!text) continue;
+      rx.lastIndex = 0;
+      let match, hits = [];
+      while ((match = rx.exec(text)) !== null) {
+        if (!match[0]) { rx.lastIndex++; continue; }
+        const hit = { row, col, start: match.index, end: match.index + match[0].length, node: null };
+        hits.push(hit); found.push(hit);
+        if (hits.length >= 5000) break;
+        if (performance.now() - sliceStart > 8) {
+          await yieldNow();
+          if (cancelled()) return null;
+          sliceStart = performance.now();
+        }
+      }
+      if (hits.length) {
+        cells.set(row + ',' + col, hits);
+        counts.set(row, (counts.get(row) || 0) + hits.length);
+      }
+      if (performance.now() - sliceStart > 8) {
+        await yieldNow();
+        if (cancelled()) return null;
+        sliceStart = performance.now();
+      }
+    }
+  }
+  return { found, cells, counts };
+}
+
+async function doSearch(keepIndex) {
+  if (document.body.classList.contains('v-conv')) { cvFind(); return true; }
+  if (!cf) { filterLib(); return true; }
+  if (hasUnsavedEdit()) return false;
+  const generation = ++searchGeneration, file = cf;
   refreshColumnFilterRows();
   if (recordJsonPanelOpen()) {
     clearRecordSearchDisplay();
     if (!rowPassesColumnFilter(activeRow) || activeRow < 0) {
-      activeRow = visibleRecordCards.length ? Number(visibleRecordCards[0].id.slice(4)) : -1;
-      if (activeRow >= 0) { showFirstJsonForRow(activeRow); scrollRecToTop(activeRow); }
-      else showRecordJsonEmpty(-1, '没有符合筛选条件的记录，请修改或清除筛选');
-    } else jpFind(keepIndex);
-    return;
+      activeRow = visibleRows[0] ?? -1;
+    }
+    if (activeRow >= 0) showFirstJsonForRow(activeRow);
+    else showRecordJsonEmpty(-1, '没有符合筛选条件的记录，请修改或清除筛选');
+    return true;
   }
-  const prevRow = marks[cur] ? marks[cur].row : -1;
+  const previousRow = marks[cur] ? marks[cur].row : activeRow;
+  const rx = buildRegex(), signature = recordSearchKey();
+  $('#q').classList.toggle('bad', rx === undefined);
+  searchPending = !!rx;
+  updateRecordPager();
+  if (rx) { $('#cnt').textContent = '搜索中…'; $('#prev').disabled = $('#next').disabled = true; }
+  const result = rx ? await collectRecordMatches(rows, rx, columnFilterRows, scopeRow,
+    () => generation !== searchGeneration || cf !== file,
+    () => new Promise(resolve => setTimeout(resolve, 0))) : null;
+  if (generation !== searchGeneration || cf !== file) return false;
+  searchPending = false; searchSignature = signature;
   clearHighlight();
-  const rx = buildRegex();
-  $('#q').classList.toggle('bad', rx === undefined);   // 正则写错时输入框变红
-  const perRow = {};
-
-  if (rx) {
-    valueEls.forEach(v => {
-      if (!v.text) return;
-      if (v.el.classList.contains('edit')) return;            // 正在编辑的不动
-      if (scopeRow >= 0 && v.row !== scopeRow) return;
-      if (!rowPassesColumnFilter(v.row)) return;
-      rx.lastIndex = 0;
-      const frag = document.createDocumentFragment();
-      let last = 0, m, hit = 0;
-      while ((m = rx.exec(v.text)) !== null) {
-        if (m[0] === '') { rx.lastIndex++; continue; }
-        if (m.index > last) appendRichRange(frag, v.text, last, m.index, v.rich);
-        const mk = document.createElement('mark');
-        appendRichRange(mk, v.text, m.index, m.index + m[0].length, v.rich);
-        frag.appendChild(mk);
-        marks.push({ node: mk, row: v.row, col: v.col });
-        perRow[v.row] = (perRow[v.row] || 0) + 1;
-        last = m.index + m[0].length;
-        if (++hit > 5000) break;
-      }
-      if (hit) {
-        if (last < v.text.length) appendRichRange(frag, v.text, last, v.text.length, v.rich);
-        v.el.textContent = '';
-        v.el.appendChild(frag);
-        v.el.dataset.hl = '1';
-        if (v.el.classList.contains('fold')) {
-          v.el.classList.remove('fold');
-          if (v.more) v.more.textContent = '收起';
-        }
-      }
-    });
+  if (result) { marks = result.found; hitsByCell = result.cells; rowHitCounts = result.counts; }
+  updateRecordVisibility(!!rx);
+  const noHit = $('#noHit');
+  if (noHit && rx && !marks.length && visibleRows.length) {
+    noHit.textContent = '没有找到「' + $('#q').value + '」' + (scopeRow >= 0 ? '，可取消限定后搜索全部记录' : '');
+    noHit.style.display = '';
   }
-
-  const onlyHit = $('#only').checked;
-  const scoped = scopeRow >= 0 && scopeRow < rows.length;
-  const outOfScope = ri => scoped && ri !== scopeRow;
-  $$('.toc-item').forEach(ti => {
-    const ri = +ti.dataset.row, n = perRow[ri] || 0;
-    ti.querySelector('.n').textContent = n ? n + '处' : '';
-    ti.classList.toggle('dim', outOfScope(ri) || (!!rx && !n));
-    ti.style.display = (!rowPassesColumnFilter(ri) || (onlyHit && (outOfScope(ri) || (rx && !n)))) ? 'none' : '';
-  });
-  rows.forEach((_, ri) => {
-    const rec = document.getElementById('rec-' + ri);
-    if (!rec) return;
-    const n = perRow[ri] || 0;
-    rec.querySelector('.badge').textContent = n ? n + ' 处命中' : '';
-    rec.style.display = (!rowPassesColumnFilter(ri) || (onlyHit && (outOfScope(ri) || (rx && !n)))) ? 'none' : '';
-  });
-  visibleRecordCards = recordCards.filter(rec => rec.style.display !== 'none');
-  fillWho(); updateStat();
-
-  const nh = $('#noHit');
-  if (nh) {
-    const filterEmpty = columnFilterRows && !columnFilterRows.size;
-    const blank = filterEmpty || (!!rx && marks.length === 0);
-    nh.innerHTML = '';
-    if (blank) {
-      const ic = document.createElement('div'); ic.className = 'eic'; ic.textContent = '🔍';
-      const ti = document.createElement('div'); ti.className = 'eti';
-      ti.textContent = filterEmpty ? '没有符合筛选条件的记录，请修改或清除筛选'
-        : (columnFilter ? '筛选结果中没有找到「' : '没有找到「') + $('#q').value + '」';
-      nh.append(ic, ti);
-      if (scoped) {
-        const sub = document.createElement('div');
-        sub.textContent = '当前已限定 ' + idOf(scopeRow) + '，点顶部「取消限定」可搜索全部记录';
-        nh.appendChild(sub);
-      }
-    }
-    nh.style.display = blank ? '' : 'none';
-  }
-
   if (marks.length) {
-    let idx = 0;
-    if (keepIndex && prevRow >= 0) {
-      const k = marks.findIndex(m => m.row >= prevRow);
-      if (k > -1) idx = k;
-    }
-    syncFoldControls();
-    gotoMark(idx);
+    const index = keepIndex ? marks.findIndex(hit => hit.row >= previousRow) : 0;
+    gotoMark(Math.max(0, index));
   } else {
-    syncFoldControls();
     updateCounter();
     recordJumpScrollTop = null;
     scheduleRecordNavSync();
   }
+  return true;
 }
 
 /* 首页视图下，搜索框按历史标题过滤。 */
@@ -3914,6 +4022,7 @@ function syncQueryUI() {
 }
 
 function scrollRecToTop(ri) {
+  if (!ensureRecordPage(ri)) return;
   const rec = document.getElementById('rec-' + ri);
   if (!rec) return;
   const main = $('#main');
@@ -3921,9 +4030,12 @@ function scrollRecToTop(ri) {
 }
 
 function gotoMark(i) {
+  if (searchPending) return;
+  if (searchSignature !== recordSearchKey()) { doSearch(); return; }
   if (!marks.length) { updateCounter(); return; }
   i = ((i % marks.length) + marks.length) % marks.length;
-  if (marks[cur]) marks[cur].node.classList.remove('cur');
+  if (!ensureRecordPage(marks[i].row)) return;
+  if (marks[cur] && marks[cur].node) marks[cur].node.classList.remove('cur');
   cur = i;
   const m = marks[cur];
   m.node.classList.add('cur');
@@ -3959,6 +4071,12 @@ function updateStat() {
 
 function fillWho() {
   const sel = $('#who');
+  const cacheKey = JSON.stringify([cf && cf.id, rows.length, columnFilter]);
+  if (cacheKey === whoCacheKey) {
+    sel.value = scopeRow >= 0 ? String(scopeRow) : '';
+    return;
+  }
+  whoCacheKey = cacheKey;
   sel.innerHTML = '';
   const o0 = document.createElement('option');
   o0.value = ''; o0.textContent = (columnFilterRows ? '筛选结果（' + columnFilterRows.size : '全部记录（' + rows.length) + '）';
@@ -4003,7 +4121,8 @@ function updateScopeUI() {
   updateStat();
 }
 
-function setScope(ri) {
+async function setScope(ri) {
+  if (hasUnsavedEdit()) return;
   if (ri >= 0 && !rowPassesColumnFilter(ri)) return;
   scopeRow = (ri >= 0 && ri < rows.length) ? ri : -1;
   if (scopeRow >= 0) {
@@ -4016,11 +4135,14 @@ function setScope(ri) {
     renderFieldNav(activeRow, activeCol);
   }
   updateScopeUI();
-  doSearch();
+  if (!(await doSearch())) return;
   if (scopeRow >= 0 && !marks.length) scrollRecToTop(scopeRow);
 }
 /* ================= 事件 ================= */
 let timer = null;
+$('#pagePrev').onclick = () => changeRecordPage(recordPage - 1);
+$('#pageNext').onclick = () => changeRecordPage(recordPage + 1);
+$('#recordPager').onsubmit = e => { e.preventDefault(); changeRecordPage(Number($('#pageNumber').value) - 1); };
 $('#columnFilterBar').addEventListener('submit', e => {
   e.preventDefault();
   if (!e.isComposing) applyColumnFilter(false);
@@ -4034,6 +4156,7 @@ $('#main').addEventListener('scroll', scheduleRecordNavSync, { passive: true });
 $('#q').addEventListener('input', () => {
   syncQueryUI();
   clearTimeout(timer);
+  searchGeneration++; searchPending = false;
   // 转换结果和右侧 JSON 只在点击放大镜 / 回车后搜索，避免英文尚未输入完就跳转。
   if (document.body.classList.contains('v-conv')) {
     $('#q').classList.remove('bad');
@@ -4043,6 +4166,12 @@ $('#q').addEventListener('input', () => {
   if (recordJsonPanelOpen()) {
     $('#q').classList.remove('bad');
     jpHits = []; jpHitIdx = -1; renderJsonSyntax($('#jpJson'), recordJsonText); jpUpdateCounter();
+    return;
+  }
+  if (cf && rows.length > RECORD_PAGE_SIZE) {
+    $('#cnt').textContent = '待搜索';
+    $('#prev').disabled = $('#next').disabled = true;
+    updateRecordPager();
     return;
   }
   timer = setTimeout(() => doSearch(true), 160);
@@ -4056,11 +4185,12 @@ $('#qsearch').onclick = () => {
 };
 $('#q').addEventListener('keydown', e => {
   if (e.key === 'Enter') {
+    if (e.isComposing) return;
     e.preventDefault(); clearTimeout(timer);
     if (inConv()) { if (!cvHits.length) doSearch(); else cvGotoHit(cvHitIdx + (e.shiftKey ? -1 : 1)); return; }
     if (inRecordJson()) { if (!jpHits.length) doSearch(); else jpGotoHit(jpHitIdx + (e.shiftKey ? -1 : 1)); return; }
     if (!cf) { doSearch(); return; }
-    if (!marks.length) doSearch(); else gotoMark(cur + (e.shiftKey ? -1 : 1));
+    if (searchPending || searchSignature !== recordSearchKey() || !marks.length) doSearch(); else gotoMark(cur + (e.shiftKey ? -1 : 1));
   } else if (e.key === 'Escape') { $('#q').value = ''; syncQueryUI(); doSearch(); }
 });
 $('#qclear').onclick = () => { $('#q').value = ''; syncQueryUI(); doSearch(); $('#q').focus(); };
